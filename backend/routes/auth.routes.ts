@@ -4,5 +4,6 @@ const authRouter = Router();
 
 authRouter.post('/register-patient',authController.registerPatient);
 authRouter.post('/login',authController.login);
+authRouter.get('/me',authController.getMe);
 
-export default authRouter;
+export default authRouter;  
