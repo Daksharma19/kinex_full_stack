@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum DoctorStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum AppointmentMode {
+  ONLINE
+  HOME_VISIT
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  phone        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  patient         Patient?
+  doctor          Doctor?  @relation("DoctorProfile")
+  verifiedDoctors Doctor[] @relation("DoctorVerifier")
+  
+  @@map("users")
+}
+
+model Patient {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  dateOfBirth DateTime @map("date_of_birth") @db.Date
+  address     String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@map("patients")
+}
+
+model Doctor {
+  id             String       @id @default(uuid())
+  userId         String       @unique @map("user_id")
+  specialization String
+  licenseNumber  String       @unique @map("license_number")
+  status         DoctorStatus @default(PENDING)
+  verifiedById   String?      @map("verified_by")
+  verifiedAt     DateTime?    @map("verified_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  user         User          @relation("DoctorProfile", fields: [userId], references: [id], onDelete: Cascade)
+  verifiedBy   User?         @relation("DoctorVerifier", fields: [verifiedById], references: [id])
+  appointments Appointment[]
+
+  @@index([status])
+  @@map("doctors")
+}
+
+model Appointment {
+  id          String            @id @default(uuid())
+  patientId   String            @map("patient_id")
+  doctorId    String            @map("doctor_id")
+  mode        AppointmentMode
+  scheduledAt DateTime          @map("scheduled_at")
+  status      AppointmentStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  patient Patient  @relation(fields: [patientId], references: [id])
+  doctor  Doctor   @relation(fields: [doctorId], references: [id])
+  payment Payment?
+
+  @@index([patientId, scheduledAt(sort: Desc)])
+  @@index([doctorId, scheduledAt(sort: Desc)])
+  @@map("appointments")
+}
+
+model Payment {
+  id               String        @id @default(uuid())
+  appointmentId    String        @unique @map("appointment_id")
+  amountPaise      BigInt        @map("amount_paise")
+  gatewayPaymentId String?       @map("gateway_payment_id")
+  status           PaymentStatus @default(PENDING)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+
+  @@map("payments")
+}

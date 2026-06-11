@@ -1,0 +1,25 @@
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: kinex_dev_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres 
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres 
+    ports:
+      - "5432:5432"
+    volumes:
+      - kinex_db_data:/var/lib/postgresql/data
+
+  # OPTIONAL: Prisma Studio Service (Uncomment if you want it to auto-run)
+  # prisma_studio:
+  #   build: .
+  #   command: npx prisma studio
+  #   ports:
+  #     - "5555:5555"
+  #   depends_on:
+  #     - postgres_db
+
+volumes:
+  kinex_db_data:
