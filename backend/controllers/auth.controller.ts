@@ -1,11 +1,10 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db.ts";
 import crypto from "crypto";
-// import jwt from "jsonwebtoken";
 
 export async function register(req: Request, res: Response) {
   try {
-    const { name, email, password,address,dateOfBirth } = req.body;
+    const { name, email, password, address, dateOfBirth } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -20,7 +19,6 @@ export async function register(req: Request, res: Response) {
         name,
         email,
         passwordHash: hashedPassword,
-        role: "PATIENT",
       },
     });
     const newPatient = await prisma.patient.create({
@@ -32,17 +30,18 @@ export async function register(req: Request, res: Response) {
     });
 
     return res.status(201).json({
-        message: "User registered successfully",
-        user:{
-            username:user.name,
-            email:user.email,
-            address:newPatient.address,
-            dateOfBirth:newPatient.dateOfBirth,
-        }
+      message: "User registered successfully",
+      user: {
+        username: user.name,
+        email: user.email,
+        address: newPatient.address,
+        dateOfBirth: newPatient.dateOfBirth,
+      },
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "An error occurred while registering the user." });
+    console.error(error);
+    return res.status(500).json({
+      error,
+    });
   }
 }
