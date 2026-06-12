@@ -9,7 +9,7 @@ const SALT_ROUNDS = 10;
 
 export async function registerPatient(req: Request, res: Response) {
   try {
-    const { name, email, password, address, phone,dateOfBirth } = req.body;
+  const { name, email, password, address, phone,dateOfBirth } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });

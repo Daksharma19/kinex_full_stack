@@ -5,4 +5,5 @@ const doctorRouter = Router();
 
 doctorRouter.post('/apply', doctorController.registerDoctor);
 doctorRouter.get('/:id', doctorController.getDoctorById);
+
 export default doctorRouter;
