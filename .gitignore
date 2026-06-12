@@ -3,3 +3,4 @@ dist
 *.logs
 *.env
 /backend/scripts
+/sample_frontend
