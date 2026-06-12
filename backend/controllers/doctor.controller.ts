@@ -1,16 +1,14 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db.ts";
-import { getAuthUser } from "../utils/auth.ts";
 
 /**
- * Apply as a doctor. Requires a valid Supabase access token — identity comes
- * from the token, not the body. Creates a DOCTOR Profile (id = sub) plus a
- * Doctor row with status PENDING. Returns 409 if a profile already exists.
+ * Apply as a doctor. requireAuth has verified the token and set req.user —
+ * identity comes from the token, not the body. Creates a DOCTOR Profile
+ * (id = sub) plus a Doctor row with status PENDING. 409 if a profile exists.
  */
 export async function applyAsDoctor(req: Request, res: Response) {
   try {
-    const authUser = await getAuthUser(req);
-    if (!authUser) return res.status(401).json({ message: "Not authenticated" });
+    const authUser = req.user!;
 
     const { name, phone, specialization, licenseNumber } = req.body;
     if (!name || !specialization || !licenseNumber) {

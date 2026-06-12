@@ -1,19 +1,13 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db";
-import { getAuthProfile } from "../utils/auth.ts";
 
 const VALID_MODE = ["ONLINE", "HOME_VISIT"];
 const VALID_STATUSES = ["CONFIRMED", "COMPLETED", "CANCELLED"];
 
-// create appointment
+// create appointment — gated to PATIENT by requireRole in the route.
 export async function createAppointment(req: Request, res: Response) {
   try {
-    const caller = await getAuthProfile(req);
-    if (!caller) return res.status(401).json({ message: "Not Authenticated" });
-    if (caller.role !== "PATIENT")
-      return res
-        .status(403)
-        .json({ message: "Only Patients can book appointments" });
+    const caller = req.profile!;
 
     const { doctorId, mode, scheduledAt, notes } = req.body;
     if (!doctorId || !mode || !scheduledAt)
@@ -71,8 +65,7 @@ export async function createAppointment(req: Request, res: Response) {
 // get all appointments for a user
 export async function listMyAppointments(req: Request, res: Response) {
   try {
-    const caller = await getAuthProfile(req);
-    if (!caller) return res.status(401).json({ message: "Not authenticated" });
+    const caller = req.profile!;
 
     let where = {};
     if (caller.role === "PATIENT") {
@@ -104,8 +97,7 @@ export async function listMyAppointments(req: Request, res: Response) {
 // get appointment by Id
 export async function getAppointmentById(req: Request, res: Response) {
   try {
-    const caller = await getAuthProfile(req);
-    if (!caller) return res.status(401).json({ message: "Not authenticated" });
+    const caller = req.profile!;
 
     const appointment = await prisma.appointment.findUnique({
       where: { id: req.params.id as string },
@@ -135,8 +127,7 @@ export async function getAppointmentById(req: Request, res: Response) {
 // update appointment
 export async function updateAppointmentStatus(req: Request, res: Response) {
   try {
-    const caller = await getAuthProfile(req);
-    if (!caller) return res.status(401).json({ message: "Not authenticated" });
+    const caller = req.profile!;
 
     const { status } = req.body;
     if (!VALID_STATUSES.includes(status)) {

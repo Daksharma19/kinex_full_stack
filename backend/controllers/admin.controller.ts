@@ -1,14 +1,12 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db.ts";
-import { getAuthProfile } from "../utils/auth.ts";
 import { supabaseAdmin } from "../utils/supabase.ts";
+
+// All handlers here run behind requireAuth + requireProfile + requireRole("ADMIN"),
+// so req.profile is guaranteed to be an ADMIN.
 
 export async function listDoctorApplication(req: Request, res: Response) {
   try {
-    const admin = await getAuthProfile(req);
-    if (!admin || admin.role !== "ADMIN") {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
     const statusFilter = ((req.query.status as string) || "PENDING").toLowerCase();
     if (!["pending", "verified", "rejected"].includes(statusFilter)) {
       return res.status(400).json({ message: "Invalid status filter" });
@@ -32,12 +30,7 @@ export async function listDoctorApplication(req: Request, res: Response) {
 
 export async function verifyDoctor(req: Request, res: Response) {
   try {
-    const admin = await getAuthProfile(req);
-    if (!admin || admin.role !== "ADMIN") {
-      return res.status(403).json({
-        message: "Unauthorized",
-      });
-    }
+    const admin = req.profile!;
     const doctorId = req.params.id as string;
     const { status } = req.body;
     if (!["VERIFIED", "REJECTED"].includes(status)) {
@@ -74,17 +67,12 @@ export async function verifyDoctor(req: Request, res: Response) {
 }
 
 /**
- * Create a new ADMIN. Gated to ADMIN callers. Uses the SERVICE_ROLE admin client
- * to create the Supabase auth user (email pre-confirmed), then creates the
- * matching ADMIN Profile keyed by the new auth user's id.
+ * Create a new ADMIN. Gated to ADMIN callers (via route middleware). Uses the
+ * SERVICE_ROLE admin client to create the Supabase auth user (email pre-confirmed),
+ * then creates the matching ADMIN Profile keyed by the new auth user's id.
  */
 export async function createAdmin(req: Request, res: Response) {
   try {
-    const caller = await getAuthProfile(req);
-    if (!caller || caller.role !== "ADMIN") {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
     const { email, password, name, phone } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ message: "email, password and name are required" });
