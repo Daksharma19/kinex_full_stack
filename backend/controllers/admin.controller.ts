@@ -1,12 +1,6 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db.ts";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { generateToken } from "../utils/token.ts";
 import { getAuthUser } from "../utils/auth.ts";
-const SALT_ROUNDS = 10;
-
-
 
 export async function listDoctorApplication(req:Request, res:Response) {
     try{

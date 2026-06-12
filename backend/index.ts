@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
+import morgan from 'morgan';
 import authRoutes from './routes/auth.routes';
 import doctorRoutes from './routes/doctor.routes';
 import adminRoutes from './routes/admin.routes';
-import morgan from 'morgan';
+import appointmentRouter from './routes/appointment.routes';
 
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/doctors', doctorRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/appoin', appointmentRouter);
 
 
 
