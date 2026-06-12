@@ -3,54 +3,72 @@
 Backend API reference for the appointment-booking service.
 
 **Base URL:** `/api/v1`
-**Auth header:** protected routes require `Authorization: Bearer <token>`
-The token is returned by `/auth/login`, `/auth/register-patient`, and `/doctor/apply`.
+
+**Authentication:** Identity is owned by **Supabase Auth**. Signup, login, Google
+sign-in and email OTP all happen on the **frontend** via `supabase-js`. The backend
+no longer issues tokens — it **verifies the Supabase access token** on each request.
+
+Protected routes require `Authorization: Bearer <supabase_access_token>` (the
+`access_token` from the supabase-js session). The backend verifies it via
+`supabase.auth.getClaims()` (asymmetric ES256 / JWKS) and maps `sub` → `profiles.id`.
+
+> The token's `role` claim is the **Postgres** role (`authenticated`), NOT the app
+> role. The app role (`PATIENT`/`DOCTOR`/`ADMIN`) is read from the `profiles` table.
+
+### Signup → profile flow
+1. Frontend signs the user up/in with Supabase (`supabase.auth.signUp` / `signInWith…`).
+2. User confirms email (if "Confirm email" is on) and obtains a session.
+3. Frontend calls `GET /auth/me` with the access token.
+   - `{ profile: null }` → send the user to profile creation.
+   - `{ profile }` → user is fully onboarded.
+4. To create the profile, the frontend calls `POST /auth/profile` (patients) or
+   `POST /doctor/apply` (doctors) with the access token.
 
 ### Roles
 - `PATIENT` — books and views their own appointments
 - `DOCTOR` — applies for verification, manages their own appointments
-- `ADMIN` — verifies doctors, has full oversight
+- `ADMIN` — verifies doctors, creates other admins, has full oversight
 
 ### Common status codes
 - `200` OK · `201` Created · `400` Bad request (validation)
-- `401` Not authenticated (missing/invalid token)
+- `401` Not authenticated (missing/invalid Supabase token)
 - `403` Forbidden (authenticated but wrong role / not a participant)
-- `404` Not found · `409` Conflict (duplicate) · `500` Server error
+- `404` Not found · `409` Conflict (profile already exists) · `500` Server error
 
 ---
 
 ## Auth — `/api/v1/auth`
 
-### `POST /api/v1/auth/register-patient`
-Register a new patient. Creates a `User` (role `PATIENT`) plus a linked `Patient` profile, and returns a JWT.
-- **Auth:** Public
-- **Body:** `{ name, email, password, address?, dateOfBirth? }`
-- **Returns:** `201` — `{ message, token, user }`
-
-### `POST /api/v1/auth/login`
-Authenticate any user (patient, doctor, or admin) with email and password.
-- **Auth:** Public
-- **Body:** `{ email, password }`
-- **Returns:** `200` — `{ message, token, user }`
+### `POST /api/v1/auth/profile`
+Create the **patient** profile for an already-authenticated Supabase user. Reads
+`sub`/`email` from the token; creates a `Profile` (role `PATIENT`, `id = sub`) plus
+the linked `Patient` row.
+- **Auth:** Bearer Supabase token
+- **Body:** `{ name, phone?, address?, dateOfBirth? }`
+- **Returns:** `201` — `{ message, profile }` · `409` if a profile already exists
 
 ### `GET /api/v1/auth/me`
-Return the currently authenticated user's profile.
-- **Auth:** Bearer token (any role)
-- **Body:** none
-- **Returns:** `200` — `{ user }`
+Return the authenticated user's profile and its patient/doctor relation.
+- **Auth:** Bearer Supabase token
+- **Returns:** `200` — `{ profile }` with relations, or `{ profile: null }` if the
+  user is authenticated but has not created a profile yet.
 
 ---
 
 ## Doctors — `/api/v1/doctor`
 
 ### `POST /api/v1/doctor/apply`
-Apply as a doctor. Creates a `User` (role `DOCTOR`) plus a `Doctor` profile with status `PENDING`, and returns a JWT. The doctor is not bookable until an admin verifies them.
-- **Auth:** Public
-- **Body:** `{ name, email, password, specialization, licenseNumber, phone? }`
-- **Returns:** `201` — `{ message, token, user }` (status `PENDING`)
+Apply as a doctor. Requires a valid Supabase token — identity comes from the token,
+not the body. Creates a `Profile` (role `DOCTOR`, `id = sub`) plus a `Doctor` row
+with status `PENDING`. Not bookable until an admin verifies them.
+- **Auth:** Bearer Supabase token
+- **Body:** `{ name, specialization, licenseNumber, phone? }`
+- **Returns:** `201` — `{ message, profile }` (status `PENDING`) · `409` if a profile
+  already exists
 
 ### `GET /api/v1/doctor/:id`
-Fetch a single doctor's public details by doctor profile id.
+Fetch a single doctor's public details by doctor profile id. Includes the linked
+`profile`.
 - **Auth:** Public
 - **Params:** `id` — doctor profile id (`doctors.id`)
 - **Returns:** `200` — `{ doctor }` · `404` if not found
@@ -61,41 +79,54 @@ Fetch a single doctor's public details by doctor profile id.
 
 ### `GET /api/v1/admin/doctors`
 List doctor applications, filtered by status. Defaults to `PENDING`.
-- **Auth:** Bearer token — `ADMIN` only
+- **Auth:** Bearer Supabase token — `ADMIN` only
 - **Query:** `?status=PENDING | VERIFIED | REJECTED`
 - **Returns:** `200` — `{ doctors }`
 
-### `PATCH /api/v1/admin/doctor/:id/verify`
-Approve or reject a doctor application. Sets `status`, and records `verifiedById` (from the admin's token) and `verifiedAt`.
-- **Auth:** Bearer token — `ADMIN` only
+### `PATCH /api/v1/admin/doctors/:id/verify`
+Approve or reject a doctor application. Sets `status`, and records `verifiedById`
+(the admin's profile id) and `verifiedAt`.
+- **Auth:** Bearer Supabase token — `ADMIN` only
 - **Params:** `id` — doctor profile id (`doctors.id`)
 - **Body:** `{ status: "VERIFIED" | "REJECTED" }`
 - **Returns:** `200` — `{ message, doctor }`
+
+### `POST /api/v1/admin/admins`
+Create a new admin. Uses the Supabase **service-role** admin client to create the
+auth user (email pre-confirmed), then creates a matching `Profile` (role `ADMIN`,
+`id =` the new auth user's id).
+- **Auth:** Bearer Supabase token — `ADMIN` only
+- **Body:** `{ email, password, name, phone? }`
+- **Returns:** `201` — `{ message, profile }`
 
 ---
 
 ## Appointments — `/api/v1/appointment`
 
 ### `POST /api/v1/appointment`
-Book an appointment with a verified doctor. The patient identity is taken from the token, not the body. Rejects unverified doctors and past dates.
-- **Auth:** Bearer token — `PATIENT` only
+Book an appointment with a verified doctor. The patient identity is taken from the
+token, not the body. Rejects unverified doctors and past dates.
+- **Auth:** Bearer Supabase token — `PATIENT` only
 - **Body:** `{ doctorId, mode: "ONLINE" | "HOME_VISIT", scheduledAt, notes? }`
-- **Returns:** `201` — `{ message, appointment }`
+- **Returns:** `200` — `{ message, appointment }`
 
 ### `GET /api/v1/appointment`
-List the caller's own appointments. A patient sees their bookings, a doctor sees appointments booked with them, an admin sees all.
-- **Auth:** Bearer token (any role)
+List the caller's own appointments. A patient sees their bookings, a doctor sees
+appointments booked with them, an admin sees all.
+- **Auth:** Bearer Supabase token (any role)
 - **Returns:** `200` — `{ appointments }`
 
 ### `GET /api/v1/appointment/:id`
-Get a single appointment. Only a participant (the patient or the doctor on it) or an admin may view it.
-- **Auth:** Bearer token — participant or `ADMIN`
+Get a single appointment. Only a participant (the patient or the doctor on it) or an
+admin may view it.
+- **Auth:** Bearer Supabase token — participant or `ADMIN`
 - **Params:** `id` — appointment id
 - **Returns:** `200` — `{ appointment }` · `403` if not a participant · `404` if not found
 
 ### `PATCH /api/v1/appointment/:id/status`
-Update an appointment's status. Only the doctor on the appointment or an admin can change it.
-- **Auth:** Bearer token — owning `DOCTOR` or `ADMIN`
+Update an appointment's status. Only the doctor on the appointment or an admin can
+change it.
+- **Auth:** Bearer Supabase token — owning `DOCTOR` or `ADMIN`
 - **Params:** `id` — appointment id
 - **Body:** `{ status: "CONFIRMED" | "COMPLETED" | "CANCELLED" }`
 - **Returns:** `200` — `{ message, appointment }`
@@ -103,6 +134,10 @@ Update an appointment's status. Only the doctor on the appointment or an admin c
 ---
 
 ## Notes
-- **Path consistency:** the doctor resource is mounted as `/doctor` (singular) in your tested routes but written as `/doctors` in some notes. Pick one and keep the mount and these docs in sync.
-- **Two id types:** `:id` in a URL is always a profile/resource's own id (`doctors.id`, `appointments.id`). The token carries the `users.id`, which is mapped to a profile internally via `userId`.
-- **Pending / not yet built:** Google OAuth sign-in (`POST /auth/google`), verified-doctor list (`GET /doctor`), payments, and email OTP verification.
+- **Identity model:** `profiles.id == auth.users.id == token.sub`. The backend never
+  mints tokens or hashes passwords anymore.
+- **Two id types:** `:id` in a URL is always a resource's own id (`doctors.id`,
+  `appointments.id`). The token's `sub` maps to `profiles.id`.
+- **Removed:** `POST /auth/register-patient` and `POST /auth/login` (now handled by
+  Supabase on the frontend).
+- **Pending / not yet built:** verified-doctor list (`GET /doctor`), payments.

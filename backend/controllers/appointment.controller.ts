@@ -1,6 +1,6 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db";
-import { getAuthUser } from "../utils/auth.ts";
+import { getAuthProfile } from "../utils/auth.ts";
 
 const VALID_MODE = ["ONLINE", "HOME_VISIT"];
 const VALID_STATUSES = ["CONFIRMED", "COMPLETED", "CANCELLED"];
@@ -8,7 +8,7 @@ const VALID_STATUSES = ["CONFIRMED", "COMPLETED", "CANCELLED"];
 // create appointment
 export async function createAppointment(req: Request, res: Response) {
   try {
-    const caller = getAuthUser(req);
+    const caller = await getAuthProfile(req);
     if (!caller) return res.status(401).json({ message: "Not Authenticated" });
     if (caller.role !== "PATIENT")
       return res
@@ -31,10 +31,8 @@ export async function createAppointment(req: Request, res: Response) {
         message: "scheduledAt must be a valid future date",
       });
     const patient = await prisma.patient.findUnique({
-      where: { userId: caller.id },
+      where: { profileId: caller.id },
     });
-    // console.log(`Patient ID: ${patient?.id}`);
-    // console.log(`Caller ID: ${caller?.id}`);
 
     if (!patient)
       return res.status(404).json({
@@ -44,12 +42,7 @@ export async function createAppointment(req: Request, res: Response) {
       where: { id: doctorId },
     });
 
-    // console.log(`doctor ${doctor?.id}`);
-
-    console.log(`Doctor: ${doctor}`);
-
     if (!doctor || doctor.status !== "VERIFIED") {
-      // console.log(`Doctor: ${doctor}, Status: ${doctor?.status}`);
       return res.status(404).json({
         message: "Doctor Not Found!",
       });
@@ -78,16 +71,16 @@ export async function createAppointment(req: Request, res: Response) {
 // get all appointments for a user
 export async function listMyAppointments(req: Request, res: Response) {
   try {
-    const caller = getAuthUser(req);
+    const caller = await getAuthProfile(req);
     if (!caller) return res.status(401).json({ message: "Not authenticated" });
 
     let where = {};
     if (caller.role === "PATIENT") {
-      const patient = await prisma.patient.findUnique({ where: { userId: caller.id } });
+      const patient = await prisma.patient.findUnique({ where: { profileId: caller.id } });
       if (!patient) return res.status(404).json({ message: "Patient profile not found" });
       where = { patientId: patient.id };
     } else if (caller.role === "DOCTOR") {
-      const doctor = await prisma.doctor.findUnique({ where: { userId: caller.id } });
+      const doctor = await prisma.doctor.findUnique({ where: { profileId: caller.id } });
       if (!doctor) return res.status(404).json({ message: "Doctor profile not found" });
       where = { doctorId: doctor.id };
     }
@@ -95,8 +88,8 @@ export async function listMyAppointments(req: Request, res: Response) {
     const appointments = await prisma.appointment.findMany({
       where,
       include: {
-        patient: { include: { user: { select: { name: true, email: true } } } },
-        doctor: { include: { user: { select: { name: true, email: true } } } },
+        patient: { include: { profile: { select: { name: true, email: true } } } },
+        doctor: { include: { profile: { select: { name: true, email: true } } } },
       },
       orderBy: { scheduledAt: "desc" },
     });
@@ -111,14 +104,14 @@ export async function listMyAppointments(req: Request, res: Response) {
 // get appointment by Id
 export async function getAppointmentById(req: Request, res: Response) {
   try {
-    const caller = getAuthUser(req);
+    const caller = await getAuthProfile(req);
     if (!caller) return res.status(401).json({ message: "Not authenticated" });
 
     const appointment = await prisma.appointment.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: {
-        patient: { include: { user: { select: { id: true, name: true, email: true } } } },
-        doctor: { include: { user: { select: { id: true, name: true, email: true } } } },
+        patient: { include: { profile: { select: { id: true, name: true, email: true } } } },
+        doctor: { include: { profile: { select: { id: true, name: true, email: true } } } },
         payment: true,
       },
     });
@@ -126,8 +119,8 @@ export async function getAppointmentById(req: Request, res: Response) {
     if (!appointment) return res.status(404).json({ message: "Appointment not found" });
 
     const isParticipant =
-      appointment.patient.user.id === caller.id ||
-      appointment.doctor.user.id === caller.id;
+      appointment.patient.profile.id === caller.id ||
+      appointment.doctor.profile.id === caller.id;
     if (!isParticipant && caller.role !== "ADMIN") {
       return res.status(403).json({ message: "Not allowed to view this appointment" });
     }
@@ -142,7 +135,7 @@ export async function getAppointmentById(req: Request, res: Response) {
 // update appointment
 export async function updateAppointmentStatus(req: Request, res: Response) {
   try {
-    const caller = getAuthUser(req);
+    const caller = await getAuthProfile(req);
     if (!caller) return res.status(401).json({ message: "Not authenticated" });
 
     const { status } = req.body;
@@ -153,13 +146,13 @@ export async function updateAppointmentStatus(req: Request, res: Response) {
     }
 
     const appointment = await prisma.appointment.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
     });
     if (!appointment) return res.status(404).json({ message: "Appointment not found" });
 
     let allowed = caller.role === "ADMIN";
     if (caller.role === "DOCTOR") {
-      const doctor = await prisma.doctor.findUnique({ where: { userId: caller.id } });
+      const doctor = await prisma.doctor.findUnique({ where: { profileId: caller.id } });
       allowed = doctor?.id === appointment.doctorId; // must be the doctor on THIS appointment
     }
     if (!allowed) {
