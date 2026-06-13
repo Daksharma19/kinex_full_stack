@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import HERO_BG from "../../assets/images/hero-background.jpg";
+import HERO_BG from "../../assets/images/service_bg.png";
 import SANCTUARY_IMG from "../../assets/images/doctor.png";
 
 /**
@@ -138,59 +138,6 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      {/* Sanctuary design section */}
-      <section className="py-24 bg-surface-container-low overflow-hidden">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-20">
-            <div className="lg:w-1/2 relative">
-              <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary-container/20 rounded-full blur-3xl" />
-              <img
-                alt="Sanctuary Suite"
-                className="rounded-xl shadow-2xl relative z-10 w-full aspect-[4/5] object-cover"
-                src={SANCTUARY_IMG}
-              />
-              <div className="absolute bottom-10 -right-6 bg-surface-container-lowest p-6 rounded-xl shadow-xl z-20 hidden md:block">
-                <p className="text-primary font-black text-4xl mb-1">98%</p>
-                <p className="text-on-surface-variant text-sm font-bold uppercase tracking-widest">
-                  Patient Calmness Index
-                </p>
-              </div>
-            </div>
-            <div className="lg:w-1/2">
-              <h2 className="text-xs tracking-widest uppercase text-primary font-bold mb-4">
-                Environment Matters
-              </h2>
-              <h3 className="text-4xl md:text-5xl font-bold tracking-tight text-on-surface mb-8">
-                Designing the Clinical Sanctuary
-              </h3>
-              <p className="text-xl text-on-surface-variant leading-relaxed mb-12">
-                Traditional clinics are built for efficiency alone. Kinex is built for
-                humanity. Every element of our architecture is designed to lower
-                cortisol levels and accelerate biological recovery.
-              </p>
-              <div className="space-y-8">
-                {SANCTUARY_FEATURES.map((f) => (
-                  <div key={f.title} className="flex gap-6">
-                    <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                      <span className="material-symbols-outlined">{f.icon}</span>
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold text-on-surface mb-1">{f.title}</h4>
-                      <p className="text-on-surface-variant">{f.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Link
-                to="/dashboard"
-                className="inline-block mt-12 bg-primary-container text-on-primary px-10 py-4 rounded-lg font-bold text-lg hover:opacity-90 active:scale-95 transition-all"
-              >
-                Experience the Sanctuary
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

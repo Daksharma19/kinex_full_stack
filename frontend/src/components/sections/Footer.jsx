@@ -1,17 +1,30 @@
 import { Link } from "react-router-dom";
 import LOGO from "../../../assets/images/logo.png";
+// Each link points to a real in-app route.
 const COLUMNS = [
   {
     title: "Services",
-    links: ["Physical Therapy", "Neurology", "Pain Management"],
+    links: [
+      { label: "Physical Therapy", to: "/services" },
+      { label: "Neurology", to: "/services" },
+      { label: "Pain Management", to: "/services" },
+    ],
   },
   {
     title: "Company",
-    links: ["Privacy Policy", "Terms of Service", "Patient Rights"],
+    links: [
+      { label: "Privacy Policy", to: "/privacy" },
+      { label: "Terms of Service", to: "/terms" },
+      { label: "Patient Rights", to: "/privacy" },
+    ],
   },
   {
     title: "Support",
-    links: ["Provider Portal", "Contact Support", "Help Center"],
+    links: [
+      { label: "Provider Portal", to: "/apply-doctor" },
+      { label: "Contact Support", to: "/contact" },
+      { label: "Help Center", to: "/contact" },
+    ],
   },
 ];
 
@@ -44,13 +57,13 @@ export default function Footer() {
             <h6 className="font-bold text-on-surface mb-6">{col.title}</h6>
             <ul className="space-y-4">
               {col.links.map((link) => (
-                <li key={link}>
-                  <a
+                <li key={link.label}>
+                  <Link
                     className="font-body text-on-surface-variant text-sm hover:text-primary transition-colors"
-                    href="#"
+                    to={link.to}
                   >
-                    {link}
-                  </a>
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>

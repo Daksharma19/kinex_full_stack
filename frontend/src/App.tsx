@@ -9,6 +9,8 @@ import SignupPage from "./components/auth/SignupPage";
 import DoctorApplyPage from "./components/auth/DoctorApplyPage";
 import TermsPage from "./components/TermsPage";
 import ServicesPage from "./components/ServicesPage";
+import PrivacyPage from "./components/PrivacyPage";
+import ContactPage from "./components/ContactPage";
 import Dashboard from "./components/Dashboard";
 
 /**
@@ -28,6 +30,8 @@ export function App() {
             <Route path="/apply-doctor" element={<DoctorApplyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/services" element={<ServicesPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/contact" element={<ContactPage />} />
             <Route
               path="/dashboard"
               element={

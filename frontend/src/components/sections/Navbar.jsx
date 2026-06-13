@@ -32,12 +32,12 @@ export default function Navbar() {
           >
             Services
           </Link>
-          <a
+          <Link
             className="font-body text-sm tracking-wider text-on-surface-variant hover:text-primary transition-colors"
-            href="#"
+            to="/contact"
           >
             Contact Us
-          </a>
+          </Link>
           <a
             className="font-body text-sm tracking-wider text-on-surface-variant hover:text-primary transition-colors"
             href="#"
