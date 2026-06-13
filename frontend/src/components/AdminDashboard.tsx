@@ -1,0 +1,491 @@
+import { useEffect, useState, useCallback, useMemo } from "react";
+import {
+  adminListDoctors,
+  adminVerifyDoctor,
+  adminListUsers,
+  adminPromoteToAdmin,
+  adminDeleteUser,
+  type DoctorApplication,
+  type DoctorStatus,
+  type UserRow,
+} from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+
+const STATUS_TABS: DoctorStatus[] = ["PENDING", "VERIFIED", "REJECTED"];
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function timeAgo(iso: string) {
+  const secs = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (secs < 60) return "just now";
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
+function DoctorStatusPill({ status }: { status: DoctorStatus }) {
+  const map: Record<DoctorStatus, string> = {
+    PENDING: "bg-tertiary-fixed text-on-tertiary-fixed-variant",
+    VERIFIED: "bg-secondary-container text-primary",
+    REJECTED: "bg-error-container text-on-error-container",
+  };
+  return (
+    <span className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase ${map[status]}`}>
+      {status}
+    </span>
+  );
+}
+
+/**
+ * Admin console, styled after the Kinex "Systems Overview" mockup. Single page:
+ * real summary metrics, provider (doctor) applications with verify/reject, user
+ * management with promote/delete, and a read-only admin profile card. All data
+ * comes from the existing admin endpoints — metric numbers are computed, not mocked.
+ */
+export default function AdminDashboard() {
+  const { profile } = useAuth();
+
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [apps, setApps] = useState<DoctorApplication[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [tab, setTab] = useState<DoctorStatus>("PENDING");
+  const [selected, setSelected] = useState<DoctorApplication | null>(null);
+
+  const [loadingApps, setLoadingApps] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
+
+  const loadApps = useCallback(async (status: DoctorStatus) => {
+    setLoadingApps(true);
+    setError(null);
+    try {
+      const { doctors } = await adminListDoctors(status);
+      setApps(doctors);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoadingApps(false);
+    }
+  }, []);
+
+  const loadUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const { users } = await adminListUsers();
+      setUsers(users);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, []);
+
+  const loadPending = useCallback(async () => {
+    try {
+      const { doctors } = await adminListDoctors("PENDING");
+      setPendingCount(doctors.length);
+    } catch {
+      /* metric only — ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    loadApps(tab);
+    setSelected(null);
+  }, [tab, loadApps]);
+
+  useEffect(() => {
+    loadUsers();
+    loadPending();
+  }, [loadUsers, loadPending]);
+
+  const metrics = useMemo(
+    () => ({
+      totalUsers: users.length,
+      doctors: users.filter((u) => u.role === "DOCTOR").length,
+      pending: pendingCount,
+    }),
+    [users, pendingCount]
+  );
+
+  async function decide(id: string, status: "VERIFIED" | "REJECTED") {
+    setActingId(id);
+    setError(null);
+    try {
+      await adminVerifyDoctor(id, status);
+      setSelected(null);
+      await Promise.all([loadApps(tab), loadPending()]);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  async function promote(id: string) {
+    setActingId(id);
+    setError(null);
+    try {
+      await adminPromoteToAdmin(id);
+      await loadUsers();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  async function remove(u: UserRow) {
+    if (
+      !window.confirm(
+        `Permanently delete ${u.name} (${u.email})? This removes all their records and login. This cannot be undone.`
+      )
+    )
+      return;
+    setActingId(u.id);
+    setError(null);
+    try {
+      await adminDeleteUser(u.id);
+      await Promise.all([loadUsers(), loadApps(tab), loadPending()]);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  function refreshAll() {
+    loadApps(tab);
+    loadUsers();
+    loadPending();
+  }
+
+  return (
+    <div className="flex-1 w-full bg-background px-6 md:px-8 py-10 max-w-7xl mx-auto flex flex-col gap-8">
+      {/* Header + metrics */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-primary mb-2">
+            Systems Overview
+          </h1>
+          <p className="text-on-surface-variant max-w-md">
+            Welcome back{profile?.name ? `, ${profile.name}` : ""}. Review provider
+            applications and manage your users.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <Metric label="Total Users" value={metrics.totalUsers} accent="border-primary/20" />
+          <Metric label="Doctors" value={metrics.doctors} accent="border-primary/20" />
+          <Metric label="Pending Approvals" value={metrics.pending} accent="border-error/20" danger />
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={refreshAll}
+          className="flex items-center gap-2 text-sm font-bold text-primary px-4 py-2 rounded-lg border border-outline-variant/30 hover:bg-surface-container-low transition-colors"
+        >
+          <span className="material-symbols-outlined text-base">refresh</span> Refresh
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-error">{error}</p>}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left: applications + users */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Provider applications */}
+          <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/10">
+            <div className="flex items-start justify-between mb-6 gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-primary">Provider Applications</h3>
+                <p className="text-xs text-on-surface-variant">
+                  Credentialing for medical staff.
+                </p>
+              </div>
+              <div className="flex gap-1 bg-surface-container-low rounded-lg p-1">
+                {STATUS_TABS.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
+                      tab === t ? "bg-surface-container-lowest text-primary shadow-sm" : "text-on-surface-variant"
+                    }`}
+                  >
+                    {t.charAt(0) + t.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-widest text-outline font-bold border-b border-outline-variant/10">
+                    <th className="pb-4">Doctor</th>
+                    <th className="pb-4">Specialty</th>
+                    <th className="pb-4">Status</th>
+                    <th className="pb-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {loadingApps ? (
+                    <tr><td colSpan={4} className="py-6 text-sm text-on-surface-variant">Loading…</td></tr>
+                  ) : apps.length === 0 ? (
+                    <tr><td colSpan={4} className="py-6 text-sm text-on-surface-variant">No {tab.toLowerCase()} applications.</td></tr>
+                  ) : (
+                    apps.map((d) => (
+                      <tr key={d.id} className="group hover:bg-surface-container-low transition-colors">
+                        <td className="py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-secondary-container flex items-center justify-center text-primary font-bold text-xs">
+                              {initials(d.profile.name)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-on-surface">{d.profile.name}</p>
+                              <p className="text-[10px] text-on-surface-variant">Applied {timeAgo(d.createdAt)}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 text-sm text-on-surface-variant">{d.specialization}</td>
+                        <td className="py-4"><DoctorStatusPill status={d.status} /></td>
+                        <td className="py-4 text-right space-x-1 whitespace-nowrap">
+                          <button
+                            onClick={() => setSelected(d)}
+                            className="px-3 py-1.5 text-[10px] font-bold text-primary hover:bg-primary-container/10 rounded-lg transition-colors"
+                          >
+                            Review
+                          </button>
+                          {d.status === "PENDING" && (
+                            <>
+                              <button
+                                onClick={() => decide(d.id, "VERIFIED")}
+                                disabled={actingId === d.id}
+                                className="px-3 py-1.5 text-[10px] font-bold bg-primary text-on-primary rounded-lg shadow-sm active:scale-95 disabled:opacity-50"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => decide(d.id, "REJECTED")}
+                                disabled={actingId === d.id}
+                                className="px-3 py-1.5 text-[10px] font-bold text-error hover:bg-error-container/20 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                Deny
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* User management */}
+          <section className="bg-surface-container rounded-xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-primary">User Management</h3>
+              <span className="text-xs text-on-surface-variant">{users.length} users</span>
+            </div>
+            {loadingUsers ? (
+              <p className="text-sm text-on-surface-variant">Loading…</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {users.map((u) => (
+                  <div
+                    key={u.id}
+                    className="bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between border border-transparent hover:border-primary/20 transition-all gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-11 w-11 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold text-sm shrink-0">
+                        {initials(u.name)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-on-surface truncate">{u.name}</p>
+                        <p className="text-[10px] text-outline font-bold uppercase truncate">
+                          {u.role} • {u.email}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {u.role !== "ADMIN" && (
+                        <button
+                          onClick={() => promote(u.id)}
+                          disabled={actingId === u.id}
+                          title="Make admin"
+                          className="p-2 text-outline-variant hover:text-primary transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-lg">shield_person</span>
+                        </button>
+                      )}
+                      {u.id !== profile?.id && (
+                        <button
+                          onClick={() => remove(u)}
+                          disabled={actingId === u.id}
+                          title="Delete user"
+                          className="p-2 text-outline-variant hover:text-error transition-colors disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-lg">delete</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Right: admin profile (read-only) */}
+        <div className="space-y-8">
+          <section className="bg-surface-container-high rounded-xl p-6">
+            <h3 className="text-lg font-bold text-primary mb-6">Admin Profile</h3>
+            <div className="flex flex-col items-center mb-6">
+              <div className="h-20 w-20 rounded-full bg-primary-container text-on-primary flex items-center justify-center text-2xl font-black">
+                {profile?.name ? initials(profile.name) : "AD"}
+              </div>
+            </div>
+            <div className="space-y-5">
+              <ReadField label="Full Name" value={profile?.name || "—"} />
+              <ReadField label="Email Address" value={profile?.email || "—"} />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase font-black text-outline-variant tracking-wider">
+                  Access Tier
+                </label>
+                <div className="bg-surface-container-lowest px-3 py-2 rounded-lg text-xs font-bold text-primary flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">workspace_premium</span>
+                  Administrator
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {/* Review modal */}
+      {selected && (
+        <ReviewModal
+          app={selected}
+          acting={actingId === selected.id}
+          onClose={() => setSelected(null)}
+          onDecide={decide}
+        />
+      )}
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  accent,
+  danger,
+}: {
+  label: string;
+  value: number;
+  accent: string;
+  danger?: boolean;
+}) {
+  return (
+    <div className={`bg-surface-container-lowest p-4 md:p-5 rounded-xl shadow-sm border-b-2 ${accent}`}>
+      <p className={`text-[10px] uppercase tracking-widest font-bold mb-1 ${danger ? "text-error" : "text-outline"}`}>
+        {label}
+      </p>
+      <p className="text-2xl md:text-3xl font-black text-on-surface">{value}</p>
+    </div>
+  );
+}
+
+function ReadField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[10px] uppercase font-black text-outline-variant tracking-wider">{label}</label>
+      <div className="bg-surface-container-low rounded-lg text-sm p-3 text-on-surface font-medium break-words">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ReviewModal({
+  app,
+  acting,
+  onClose,
+  onDecide,
+}: {
+  app: DoctorApplication;
+  acting: boolean;
+  onClose: () => void;
+  onDecide: (id: string, status: "VERIFIED" | "REJECTED") => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-container-lowest rounded-2xl p-8 w-full max-w-md shadow-2xl flex flex-col gap-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 rounded-full bg-secondary-container flex items-center justify-center text-primary font-bold">
+            {initials(app.profile.name)}
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-on-surface">{app.profile.name}</h2>
+            <DoctorStatusPill status={app.status} />
+          </div>
+        </div>
+        <dl className="text-sm flex flex-col gap-2 mt-2">
+          <ModalRow label="Email" value={app.profile.email} />
+          <ModalRow label="Phone" value={app.profile.phone || "—"} />
+          <ModalRow label="Specialization" value={app.specialization} />
+          <ModalRow label="License #" value={app.licenseNumber} />
+          <ModalRow label="Applied" value={new Date(app.createdAt).toLocaleString()} />
+        </dl>
+        {app.status === "PENDING" ? (
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => onDecide(app.id, "VERIFIED")}
+              disabled={acting}
+              className="flex-1 bg-primary text-on-primary py-2.5 rounded-lg font-bold active:scale-95 disabled:opacity-50"
+            >
+              {acting ? "Saving…" : "Approve"}
+            </button>
+            <button
+              onClick={() => onDecide(app.id, "REJECTED")}
+              disabled={acting}
+              className="flex-1 border border-error/40 text-error py-2.5 rounded-lg font-bold hover:bg-error-container/20 disabled:opacity-50"
+            >
+              Deny
+            </button>
+          </div>
+        ) : (
+          <button onClick={onClose} className="mt-2 text-sm font-bold text-primary hover:underline">
+            Close
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ModalRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <dt className="text-on-surface-variant">{label}</dt>
+      <dd className="font-medium text-right break-all">{value}</dd>
+    </div>
+  );
+}
