@@ -7,7 +7,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
-import { getMe, type MeResponse } from "../lib/api";
+import { getMe, createPatientProfile, type MeResponse } from "../lib/api";
 
 interface AuthContextValue {
   /** Supabase session (null when logged out). */
@@ -21,6 +21,8 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   /** Re-fetch the backend profile (e.g. right after creating it). */
   refreshProfile: () => Promise<void>;
+  /** Start the Google OAuth redirect flow via Supabase. */
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -42,7 +44,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const { profile } = await getMe();
+      let { profile } = await getMe();
+
+      // First-time OAuth (Google) users have a valid session but no app profile
+      // yet. Auto-provision a PATIENT profile from their Google identity so the
+      // dashboard and protected API calls work immediately. Email/password users
+      // already get a profile at signup, so this only fires for OAuth.
+      if (!profile) {
+        const u = currentSession.user;
+        const name =
+          (u.user_metadata?.full_name as string) ||
+          (u.user_metadata?.name as string) ||
+          u.email ||
+          "New User";
+        try {
+          await createPatientProfile({ name });
+          profile = (await getMe()).profile;
+        } catch {
+          // 409 (already created by a concurrent event) or transient error —
+          // re-read so we still land on the freshest profile.
+          profile = (await getMe()).profile;
+        }
+      }
+
       setProfile(profile);
     } catch {
       // Network/backend error — leave profile null; protected UI can retry.
@@ -79,6 +103,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut();
     },
     refreshProfile: () => loadProfile(session),
+    signInWithGoogle: async () => {
+      // Redirect back to /dashboard after Google auth. detectSessionInUrl on the
+      // shared client consumes the callback and fires onAuthStateChange.
+      // NOTE: this URL must be allow-listed in Supabase → Authentication → URL
+      // Configuration → Redirect URLs (e.g. http://localhost:5173/dashboard).
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/dashboard` },
+      });
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

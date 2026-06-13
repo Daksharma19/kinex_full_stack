@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import GoogleButton from "./GoogleButton";
 
 /**
  * Sign up via the backend (POST /auth/signup), which creates the auth user with
@@ -72,6 +73,7 @@ export default function SignupPage() {
         <Button type="submit" disabled={loading}>
           {loading ? "Creating account…" : "Sign up"}
         </Button>
+        <GoogleButton />
         <p className="text-sm text-center text-on-surface-variant">
           Already have an account?{" "}
           <Link to="/login" className="text-primary underline">

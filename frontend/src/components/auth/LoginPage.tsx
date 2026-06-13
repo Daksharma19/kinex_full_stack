@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import GoogleButton from "./GoogleButton";
 
 /**
  * Email/password login. Identity is owned by Supabase — on success the shared
@@ -52,6 +53,7 @@ export default function LoginPage() {
         <Button type="submit" disabled={loading}>
           {loading ? "Logging in…" : "Log in"}
         </Button>
+        <GoogleButton />
         <p className="text-sm text-center text-on-surface-variant">
           No account?{" "}
           <Link to="/signup" className="text-primary underline">
