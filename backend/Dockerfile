@@ -15,11 +15,11 @@ RUN bun install
 COPY . .
 
 # Generate the Prisma client (output: ./generated/prisma).
-RUN bunx prisma generate
+RUN bunx --bun prisma generate
 
 ENV NODE_ENV=production
 # Railway injects PORT at runtime; this is just the local-docker default.
 EXPOSE 3000
 
 # Apply any pending migrations, then start the API.
-CMD ["sh", "-c", "bunx prisma migrate deploy && bun run index.ts"]
+CMD ["sh", "-c", "bunx --bun prisma migrate deploy && bun run index.ts"]
