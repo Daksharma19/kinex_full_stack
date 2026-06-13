@@ -72,29 +72,27 @@ bun run index.ts               # start command (serves the API)
 
 ---
 
-## 4. Deploy the backend (Render — recommended)
+## 4. Deploy the backend (Railway — recommended)
 
-Render (or Railway / Fly.io) can run a long‑lived Bun process.
+Railway runs a long‑lived process and **does not spin down** (unlike Render's free
+tier). The repo ships a `backend/Dockerfile` + `backend/railway.json`, so the build,
+start command, migrations, and healthcheck are already configured.
 
-1. On **render.com** → New → **Web Service** → connect this repo.
-2. **Root Directory:** `backend`
-3. **Runtime:** Docker is optional; use a native env with Bun. If Bun isn't
-   preinstalled, add it in the build command:
-   ```bash
-   curl -fsSL https://bun.sh/install | bash && export PATH=$HOME/.bun/bin:$PATH \
-     && bun install && bunx prisma generate
-   ```
-   (On hosts where Bun is available, just: `bun install && bunx prisma generate`.)
-4. **Start command:** `bun run index.ts`
-5. Add all backend env vars from the table above.
-6. After the first deploy, apply migrations once (Render Shell or locally against
-   the same `DIRECT_URL`):
-   ```bash
-   bunx prisma migrate deploy
-   ```
+1. On **railway.app** → New Project → **Deploy from GitHub repo** → pick this repo.
+2. In the service **Settings → Root Directory**, set `backend`.
+   (Railway reads `backend/railway.json` and builds the `Dockerfile`.)
+3. **Variables:** add all backend env vars from the table above
+   (`SUPABASE_*`, `DATABASE_URL`, `DIRECT_URL`, `FRONTEND_ORIGIN`). Railway provides
+   `PORT` automatically.
+4. **Deploy.** The container runs `bunx prisma migrate deploy` (applies migrations)
+   then `bun run index.ts`. Healthcheck path is `/`.
+5. **Networking → Generate Domain** to get the public backend URL. Use it for the
+   frontend's `BUN_PUBLIC_API_BASE_URL` (append `/api/v1`).
 
-> Railway: same idea — set root to `backend`, build `bun install && bunx prisma generate`,
-> start `bun run index.ts`, add env vars.
+> The same `Dockerfile` works on **Koyeb** (free, no sleep) and **Fly.io**
+> (`fly launch` → set `min_machines_running = 1`), or any container host. For a
+> plain VPS: install Bun, `bun install && bunx prisma generate && bunx prisma
+> migrate deploy`, then run `bun run index.ts` under `pm2`/systemd.
 
 ---
 
