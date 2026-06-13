@@ -1,66 +1,22 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import HERO_BG from "../../assets/images/service_bg.png";
-import SANCTUARY_IMG from "../../assets/images/doctor.png";
+import { services } from "../lib/services";
 
 /**
- * Public "Our Clinical Specialties" services page, styled after the Kinex
- * mockup. Navbar + Footer come from the shared Layout, so this renders only the
- * page sections. Service cards use Material Symbols icons (already loaded) rather
- * than remote images to stay self-contained.
+ * Public "Our Clinical Specialties" services page. Cards are data-driven from
+ * src/data/services.json (id, image, title, shortDesc, longDesc). Six show
+ * initially; "View More" reveals the rest. "Read More" opens /services/:id.
+ * Navbar + Footer come from the shared Layout.
  */
 
-const SERVICES = [
-  {
-    icon: "cardiology",
-    title: "Advanced Cardiology",
-    desc: "Heart care reimagined through robotic diagnostics and minimally invasive preventive interventions.",
-  },
-  {
-    icon: "exercise",
-    title: "Precision Physiotherapy",
-    desc: "AI-assisted motion analysis to create hyper-personalized recovery programs for peak performance.",
-  },
-  {
-    icon: "dentistry",
-    title: "Dental & Oral Health",
-    desc: "Painless dentistry in a spa-like environment, from cosmetic restoration to surgical implants.",
-  },
-  {
-    icon: "surgical",
-    title: "General Surgery",
-    desc: "State-of-the-art surgical suites optimized for safety and rapid post-operative recovery.",
-  },
-  {
-    icon: "child_care",
-    title: "Pediatrics Care",
-    desc: "Child-centric specialized care designed to make medical visits an engaging, stress-free experience.",
-  },
-  {
-    icon: "neurology",
-    title: "Neurology Services",
-    desc: "Expert management of complex neurological conditions with focus on cognitive longevity.",
-  },
-];
-
-const SANCTUARY_FEATURES = [
-  {
-    icon: "timer",
-    title: "Reduced Wait Times",
-    desc: "Our digital triage system ensures you move from arrival to consultation in under 8 minutes.",
-  },
-  {
-    icon: "bedroom_parent",
-    title: "Private Recovery Suites",
-    desc: "Sound-proofed, private environments with circadian lighting and HEPA-pure air filtration.",
-  },
-  {
-    icon: "description",
-    title: "Instant Digital Reports",
-    desc: "Receive encrypted diagnostic results directly to your Kinex app as soon as they are processed.",
-  },
-];
+const PAGE_SIZE = 6;
 
 export default function ServicesPage() {
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const shown = services.slice(0, visible);
+  const hasMore = visible < services.length;
+
   return (
     <div className="flex-1 w-full bg-background text-on-surface">
       {/* Hero */}
@@ -110,24 +66,27 @@ export default function ServicesPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {SERVICES.map((s) => (
+            {shown.map((s) => (
               <div
-                key={s.title}
+                key={s.id}
                 className="group bg-surface-container-lowest rounded-xl overflow-hidden border border-outline-variant/30 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,89,92,0.08)]"
               >
-                <div className="relative h-44 overflow-hidden bg-primary-container/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-primary text-7xl transition-transform duration-500 group-hover:scale-110">
-                    {s.icon}
-                  </span>
+                <div className="relative h-56 overflow-hidden">
+                  <img
+                    alt={s.title}
+                    src={s.image}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
                 </div>
                 <div className="p-8 flex flex-col flex-grow">
                   <h4 className="text-2xl font-bold mb-4 text-on-surface">{s.title}</h4>
                   <p className="text-on-surface-variant leading-relaxed mb-8 flex-grow">
-                    {s.desc}
+                    {s.shortDesc}
                   </p>
                   <Link
-                    to="/dashboard"
-                    className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-widest hover:gap-4 transition-all"
+                    to={`/services/${s.id}`}
+                    className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-widest hover:gap-4 transition-all w-fit"
                   >
                     Read More <span className="material-symbols-outlined text-sm">arrow_forward</span>
                   </Link>
@@ -135,9 +94,20 @@ export default function ServicesPage() {
               </div>
             ))}
           </div>
+
+          {hasMore && (
+            <div className="flex justify-center mt-16">
+              <button
+                onClick={() => setVisible((v) => v + PAGE_SIZE)}
+                className="inline-flex items-center gap-2 bg-primary-container text-on-primary px-8 py-3.5 rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all"
+              >
+                View More
+                <span className="material-symbols-outlined">expand_more</span>
+              </button>
+            </div>
+          )}
         </div>
       </section>
-
     </div>
   );
 }
