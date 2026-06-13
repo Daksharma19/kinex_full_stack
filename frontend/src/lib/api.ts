@@ -149,6 +149,28 @@ export function adminVerifyDoctor(doctorId: string, status: "VERIFIED" | "REJECT
   );
 }
 
+export interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  role: "PATIENT" | "DOCTOR" | "ADMIN";
+  phone: string | null;
+  createdAt: string;
+}
+
+/** ADMIN-only: list all registered users (to pick one to promote). */
+export function adminListUsers() {
+  return apiFetch<{ users: UserRow[] }>("/admin/users");
+}
+
+/** ADMIN-only: promote an existing registered user to ADMIN. */
+export function adminPromoteToAdmin(userId: string) {
+  return apiFetch<{ message: string; profile: UserRow }>(
+    `/admin/users/${userId}/promote`,
+    { method: "PATCH" }
+  );
+}
+
 /** Create the PATIENT profile for the current authenticated Supabase user. */
 export function createPatientProfile(input: {
   name: string;

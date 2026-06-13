@@ -9,7 +9,11 @@ adminRouter.use(requireAuth, requireProfile, requireRole("ADMIN"));
 
 adminRouter.get("/doctors",adminController.listDoctorApplication)
 adminRouter.patch("/doctors/:id/verify",adminController.verifyDoctor)
-adminRouter.post("/admins",adminController.createAdmin) 
+
+// Manage admins: list all registered users, and promote one to ADMIN.
+adminRouter.get("/users",adminController.listUsers)
+adminRouter.patch("/users/:id/promote",adminController.promoteToAdmin)
+adminRouter.post("/admins",adminController.createAdmin)
 
 
 

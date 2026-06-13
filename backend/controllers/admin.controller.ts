@@ -67,6 +67,56 @@ export async function verifyDoctor(req: Request, res: Response) {
 }
 
 /**
+ * List every registered user (profile), so an admin can pick one to promote.
+ * ADMIN-only via route middleware.
+ */
+export async function listUsers(req: Request, res: Response) {
+  try {
+    const users = await prisma.profile.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        phone: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return res.status(200).json({ users });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
+ * Promote an existing registered user to ADMIN by flipping their profile role.
+ * ADMIN-only via route middleware. 404 if the profile doesn't exist, 409 if the
+ * user is already an admin.
+ */
+export async function promoteToAdmin(req: Request, res: Response) {
+  try {
+    const id = req.params.id as string;
+    const profile = await prisma.profile.findUnique({ where: { id } });
+    if (!profile) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (profile.role === "ADMIN") {
+      return res.status(409).json({ message: "User is already an admin" });
+    }
+    const updated = await prisma.profile.update({
+      where: { id },
+      data: { role: "ADMIN" },
+    });
+    return res.status(200).json({ message: "User promoted to admin", profile: updated });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
  * Create a new ADMIN. Gated to ADMIN callers (via route middleware). Uses the
  * SERVICE_ROLE admin client to create the Supabase auth user (email pre-confirmed),
  * then creates the matching ADMIN Profile keyed by the new auth user's id.
