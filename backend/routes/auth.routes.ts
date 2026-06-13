@@ -1,9 +1,10 @@
-import {Router} from 'express';
+import { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
+import { requireAuth, requireProfile } from '../middleware/auth.middleware';
 const authRouter = Router();
 
-authRouter.post('/register-patient',authController.registerPatient);
-authRouter.post('/login',authController.login);
-authRouter.get('/me',authController.getMe);
+// User is authenticated but may not have a profile yet.
+authRouter.post('/profile', requireAuth, authController.createPatientProfile);
+authRouter.get('/me', requireAuth, requireProfile, authController.getMe);
 
-export default authRouter;  
+export default authRouter;
