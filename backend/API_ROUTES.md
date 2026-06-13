@@ -15,6 +15,8 @@ Protected routes require `Authorization: Bearer <supabase_access_token>` (the
 > The token's `role` claim is the **Postgres** role (`authenticated`), NOT the app
 > role. The app role (`PATIENT`/`DOCTOR`/`ADMIN`) is read from the `profiles` table.
 
+> 🧪 To get a token and run these endpoints in Postman, see [TESTING.md](./TESTING.md).
+
 ### Signup → profile flow
 1. Frontend signs the user up/in with Supabase (`supabase.auth.signUp` / `signInWith…`).
 2. User confirms email (if "Confirm email" is on) and obtains a session.

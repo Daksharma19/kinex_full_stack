@@ -1,9 +1,8 @@
 import "./index.css";
+import Home from "./components/Home.jsx";
 
 export function App() {
-  return <div>
-    Hello world
-    </div>
+  return <Home />;
 }
 
 export default App;
