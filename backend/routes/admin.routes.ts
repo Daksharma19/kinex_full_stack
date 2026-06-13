@@ -13,6 +13,7 @@ adminRouter.patch("/doctors/:id/verify",adminController.verifyDoctor)
 // Manage admins: list all registered users, and promote one to ADMIN.
 adminRouter.get("/users",adminController.listUsers)
 adminRouter.patch("/users/:id/promote",adminController.promoteToAdmin)
+adminRouter.delete("/users/:id",adminController.deleteUser)
 adminRouter.post("/admins",adminController.createAdmin)
 
 

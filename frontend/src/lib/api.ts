@@ -171,6 +171,16 @@ export function adminPromoteToAdmin(userId: string) {
   );
 }
 
+/**
+ * ADMIN-only: permanently delete a user — all DB records plus the Supabase auth
+ * account. Irreversible.
+ */
+export function adminDeleteUser(userId: string) {
+  return apiFetch<{ message: string }>(`/admin/users/${userId}`, {
+    method: "DELETE",
+  });
+}
+
 // ---- Doctors (public) + appointments ----
 
 export interface VerifiedDoctor {

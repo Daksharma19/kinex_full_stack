@@ -4,10 +4,12 @@ import {
   adminVerifyDoctor,
   adminListUsers,
   adminPromoteToAdmin,
+  adminDeleteUser,
   type DoctorApplication,
   type DoctorStatus,
   type UserRow,
 } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 import { Button } from "@/components/ui/button";
 
 const STATUS_TABS: DoctorStatus[] = ["PENDING", "VERIFIED", "REJECTED"];
@@ -193,10 +195,12 @@ function DoctorApplications() {
 /* ---------------- Manage admins ---------------- */
 
 function ManageAdmins() {
+  const { profile } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [promotingId, setPromotingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -225,6 +229,23 @@ function ManageAdmins() {
       setError((err as Error).message);
     } finally {
       setPromotingId(null);
+    }
+  }
+
+  async function remove(u: UserRow) {
+    const ok = window.confirm(
+      `Permanently delete ${u.name} (${u.email})? This removes all their records and their login. This cannot be undone.`
+    );
+    if (!ok) return;
+    setDeletingId(u.id);
+    setError(null);
+    try {
+      await adminDeleteUser(u.id);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -274,6 +295,20 @@ function ManageAdmins() {
                     disabled={promotingId === u.id}
                   >
                     {promotingId === u.id ? "Promoting…" : "Make admin"}
+                  </Button>
+                )}
+                {u.id === profile?.id ? (
+                  <span className="text-xs text-on-surface-variant w-20 text-right">
+                    You
+                  </span>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    className="w-20 text-red-600 hover:bg-red-50"
+                    onClick={() => remove(u)}
+                    disabled={deletingId === u.id}
+                  >
+                    {deletingId === u.id ? "…" : "Delete"}
                   </Button>
                 )}
               </div>
