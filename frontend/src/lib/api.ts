@@ -120,6 +120,35 @@ export function applyDoctor(input: DoctorDetails) {
   });
 }
 
+// ---- Admin: doctor verification ----
+
+export type DoctorStatus = "PENDING" | "VERIFIED" | "REJECTED";
+
+export interface DoctorApplication {
+  id: string;
+  specialization: string;
+  licenseNumber: string;
+  status: DoctorStatus;
+  verifiedAt: string | null;
+  createdAt: string;
+  profile: { name: string; email: string; phone: string | null };
+}
+
+/** ADMIN-only: list doctor applications by status (defaults to PENDING). */
+export function adminListDoctors(status: DoctorStatus = "PENDING") {
+  return apiFetch<{ doctors: DoctorApplication[] }>(
+    `/admin/doctors?status=${status}`
+  );
+}
+
+/** ADMIN-only: approve or reject a doctor application. */
+export function adminVerifyDoctor(doctorId: string, status: "VERIFIED" | "REJECTED") {
+  return apiFetch<{ message: string; doctor: DoctorApplication }>(
+    `/admin/doctors/${doctorId}/verify`,
+    { method: "PATCH", body: JSON.stringify({ status }) }
+  );
+}
+
 /** Create the PATIENT profile for the current authenticated Supabase user. */
 export function createPatientProfile(input: {
   name: string;

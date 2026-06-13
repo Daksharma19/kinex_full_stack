@@ -1,14 +1,20 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "@/components/ui/button";
+import AdminDashboard from "./AdminDashboard";
 
 /**
- * Example protected page. Only reachable through <ProtectedRoute>, so a session
- * is guaranteed here. Reads identity from the shared auth context and shows the
- * backend profile (which may still be null if the user hasn't onboarded).
+ * Protected landing page. Only reachable through <ProtectedRoute>, so a session
+ * is guaranteed here. Admins get the admin console; patients/doctors see their
+ * own identity card.
  */
 export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
+
+  // Role-based view: admins manage doctor applications.
+  if (profile?.role === "ADMIN") {
+    return <AdminDashboard />;
+  }
 
   return (
     <div className="min-h-screen bg-background px-6 py-10 max-w-3xl mx-auto flex flex-col gap-6">
