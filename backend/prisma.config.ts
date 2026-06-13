@@ -8,6 +8,9 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    // Migrations run over the DIRECT connection (port 5432), not the pooled
+    // pgbouncer URL — pgbouncer's transaction pooling breaks migrations.
+    // The app runtime uses the pooled DATABASE_URL via the pg adapter (see db.ts).
+    url: env("DIRECT_URL"),
   },
 });

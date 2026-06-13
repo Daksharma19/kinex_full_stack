@@ -15,10 +15,11 @@ RUN bun install
 COPY . .
 
 # Generate the Prisma client (output: ./generated/prisma).
-# prisma.config.ts resolves env("DATABASE_URL") when the config loads, but
-# `generate` never connects — so a placeholder satisfies it at build time.
+# prisma.config.ts resolves env("DIRECT_URL") when the config loads, but
+# `generate` never connects — so placeholders satisfy it at build time.
 # The real DATABASE_URL/DIRECT_URL are injected by the host at runtime.
-RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" \
+RUN DIRECT_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" \
+    DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" \
     bunx --bun prisma generate
 
 ENV NODE_ENV=production
