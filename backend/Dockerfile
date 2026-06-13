@@ -15,7 +15,11 @@ RUN bun install
 COPY . .
 
 # Generate the Prisma client (output: ./generated/prisma).
-RUN bunx --bun prisma generate
+# prisma.config.ts resolves env("DATABASE_URL") when the config loads, but
+# `generate` never connects — so a placeholder satisfies it at build time.
+# The real DATABASE_URL/DIRECT_URL are injected by the host at runtime.
+RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" \
+    bunx --bun prisma generate
 
 ENV NODE_ENV=production
 # Railway injects PORT at runtime; this is just the local-docker default.
