@@ -4,7 +4,10 @@ import { requireAuth } from '../middleware/auth.middleware';
 
 const doctorRouter = Router();
 
-// Applicant is authenticated but does not have a profile yet.
+// Public: email/password doctor signup (creates pre-confirmed auth user +
+// DOCTOR profile, status PENDING) — no email confirmation needed.
+doctorRouter.post('/signup', doctorController.registerDoctor);
+// Applicant is already authenticated (e.g. via Google) but has no profile yet.
 doctorRouter.post('/apply', requireAuth, doctorController.applyAsDoctor);
 // Public.
 doctorRouter.get('/:id', doctorController.getDoctorById);

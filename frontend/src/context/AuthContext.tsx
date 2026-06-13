@@ -7,7 +7,14 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
-import { getMe, createPatientProfile, type MeResponse } from "../lib/api";
+import {
+  getMe,
+  createPatientProfile,
+  applyDoctor,
+  DOCTOR_APPLY_INTENT_KEY,
+  type DoctorDetails,
+  type MeResponse,
+} from "../lib/api";
 
 interface AuthContextValue {
   /** Supabase session (null when logged out). */
@@ -47,24 +54,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let { profile } = await getMe();
 
       // First-time OAuth (Google) users have a valid session but no app profile
-      // yet. Auto-provision a PATIENT profile from their Google identity so the
-      // dashboard and protected API calls work immediately. Email/password users
-      // already get a profile at signup, so this only fires for OAuth.
+      // yet. Provision one now so the dashboard and protected API calls work.
+      // Email/password users already get a profile at signup, so this only fires
+      // for OAuth.
       if (!profile) {
-        const u = currentSession.user;
-        const name =
-          (u.user_metadata?.full_name as string) ||
-          (u.user_metadata?.name as string) ||
-          u.email ||
-          "New User";
         try {
-          await createPatientProfile({ name });
-          profile = (await getMe()).profile;
+          // If the user came through "Apply as a Doctor" with Google, the form
+          // details were stashed before the redirect — create a DOCTOR profile.
+          const intentRaw = sessionStorage.getItem(DOCTOR_APPLY_INTENT_KEY);
+          if (intentRaw) {
+            sessionStorage.removeItem(DOCTOR_APPLY_INTENT_KEY);
+            await applyDoctor(JSON.parse(intentRaw) as DoctorDetails);
+          } else {
+            // Default: a regular Google sign-in => PATIENT profile from identity.
+            const u = currentSession.user;
+            const name =
+              (u.user_metadata?.full_name as string) ||
+              (u.user_metadata?.name as string) ||
+              u.email ||
+              "New User";
+            await createPatientProfile({ name });
+          }
         } catch {
           // 409 (already created by a concurrent event) or transient error —
-          // re-read so we still land on the freshest profile.
-          profile = (await getMe()).profile;
+          // fall through and re-read the freshest profile below.
         }
+        profile = (await getMe()).profile;
       }
 
       setProfile(profile);

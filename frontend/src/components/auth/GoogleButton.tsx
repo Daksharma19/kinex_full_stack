@@ -4,14 +4,23 @@ import { useAuth } from "../../context/AuthContext";
 /**
  * "Continue with Google" button. Kicks off the Supabase OAuth redirect; the
  * actual sign-in completes when Google redirects back and the shared client
- * consumes the callback. Shared by the login and signup pages.
+ * consumes the callback. Shared by the login, signup, and doctor-apply pages.
+ *
+ * `beforeRedirect` lets a caller validate/stash state right before the redirect
+ * (e.g. the doctor-apply form saves its details to sessionStorage). Return false
+ * to abort the redirect (e.g. validation failed).
  */
-export default function GoogleButton() {
+export default function GoogleButton({
+  beforeRedirect,
+}: {
+  beforeRedirect?: () => boolean | void;
+}) {
   const { signInWithGoogle } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   async function onClick() {
     setError(null);
+    if (beforeRedirect && beforeRedirect() === false) return;
     try {
       await signInWithGoogle();
     } catch (err) {

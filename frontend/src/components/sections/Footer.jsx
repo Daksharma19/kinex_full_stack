@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import LOGO from "../../../assets/images/logo.png";
 const COLUMNS = [
   {
@@ -25,9 +26,18 @@ export default function Footer() {
               Kinex Wellness & Rehab
             </span>
           </div>
-          <p className="font-body text-on-surface-variant text-sm leading-relaxed">
+          <p className="font-body text-on-surface-variant text-sm leading-relaxed mb-6">
             © Kinex Wellness & Rehab.
           </p>
+          <p className="font-body text-on-surface-variant text-sm mb-3">
+            Are you a healthcare provider?
+          </p>
+          <Link
+            to="/apply-doctor"
+            className="inline-block bg-primary-container text-on-primary px-5 py-2.5 rounded-lg font-medium shadow-sm hover:brightness-110 active:scale-95 transition-all"
+          >
+            Apply as a Doctor
+          </Link>
         </div>
         {COLUMNS.map((col) => (
           <div key={col.title}>

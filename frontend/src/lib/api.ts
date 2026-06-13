@@ -82,6 +82,44 @@ export function signUpPatient(input: {
   });
 }
 
+/**
+ * sessionStorage key used to carry doctor-apply form details across the Google
+ * OAuth redirect. Set before redirecting; consumed (and cleared) once the user
+ * comes back authenticated. See AuthContext + DoctorApplyPage.
+ */
+export const DOCTOR_APPLY_INTENT_KEY = "doctorApplyIntent";
+
+/** Fields a doctor provides when applying. */
+export interface DoctorDetails {
+  name: string;
+  specialization: string;
+  licenseNumber: string;
+  phone?: string;
+}
+
+/**
+ * Register a new doctor via email/password (public). Backend creates the
+ * pre-confirmed auth user + DOCTOR profile (status PENDING). Sign in afterwards
+ * to get a session.
+ */
+export function signUpDoctor(input: DoctorDetails & { email: string; password: string }) {
+  return apiFetch("/doctor/signup", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/**
+ * Apply as a doctor for an ALREADY-authenticated user (e.g. after Google login).
+ * Identity comes from the token; only the doctor details are sent.
+ */
+export function applyDoctor(input: DoctorDetails) {
+  return apiFetch("/doctor/apply", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 /** Create the PATIENT profile for the current authenticated Supabase user. */
 export function createPatientProfile(input: {
   name: string;
