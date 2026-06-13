@@ -55,13 +55,14 @@ export async function createPatientProfile(req: Request, res: Response) {
 
 /**
  * Return the authenticated user's profile plus its patient/doctor relation.
- * requireAuth + requireProfile guarantee a profile exists, so this just loads
- * the relations for the caller.
+ * Guarded by requireAuth only (not requireProfile), so a user who has signed up
+ * but not yet onboarded gets { profile: null } — the frontend uses that to send
+ * them into profile creation.
  */
 export async function getMe(req: Request, res: Response) {
   try {
     const profile = await prisma.profile.findUnique({
-      where: { id: req.profile!.id },
+      where: { id: req.user!.id },
       include: { patient: true, doctor: true },
     });
 

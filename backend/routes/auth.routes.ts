@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
-import { requireAuth, requireProfile } from '../middleware/auth.middleware';
+import { requireAuth } from '../middleware/auth.middleware';
 const authRouter = Router();
 
 // User is authenticated but may not have a profile yet.
 authRouter.post('/profile', requireAuth, authController.createPatientProfile);
-authRouter.get('/me', requireAuth, requireProfile, authController.getMe);
+// NOTE: only requireAuth here (no requireProfile). /me must be reachable by an
+// authenticated user who has NOT onboarded yet so it can return { profile: null }
+// and the frontend can route them into profile creation.
+authRouter.get('/me', requireAuth, authController.getMe);
 
 export default authRouter;

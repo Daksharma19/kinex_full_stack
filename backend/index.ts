@@ -9,7 +9,20 @@ import appointmentRouter from './routes/appointment.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.use(cors());
+
+// Lock CORS to the frontend origin(s). Set FRONTEND_ORIGIN in .env (comma-
+// separated for multiple). Defaults to the local Bun dev server on :5173.
+// We send the Authorization header (Bearer Supabase token), so this must list
+// the exact origin the frontend is served from.
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim());
+app.use(
+  cors({
+    origin: allowedOrigins,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(morgan("dev"));
 app.use(express.json());
 
