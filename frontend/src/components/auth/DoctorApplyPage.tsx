@@ -8,6 +8,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import GoogleButton from "./GoogleButton";
+import TermsCheckbox from "./TermsCheckbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,7 @@ export default function DoctorApplyPage() {
     email: "",
     password: "",
   });
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -52,6 +54,10 @@ export default function DoctorApplyPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!agreed) {
+      setError("Please agree to the Terms & Conditions to continue.");
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -77,6 +83,10 @@ export default function DoctorApplyPage() {
   // Runs right before the Google redirect: require the doctor fields and stash
   // them so we can finish the application when the user returns.
   function beforeGoogle(): boolean {
+    if (!agreed) {
+      setError("Please agree to the Terms & Conditions to continue.");
+      return false;
+    }
     if (!form.name || !form.specialization || !form.licenseNumber) {
       setError("Fill in name, specialization and license number before using Google.");
       return false;
@@ -123,9 +133,10 @@ export default function DoctorApplyPage() {
           <Input id="password" type="password" required minLength={6} value={form.password} onChange={set("password")} />
         </div>
 
+        <TermsCheckbox checked={agreed} onChange={setAgreed} />
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || !agreed}>
           {loading ? "Submitting…" : "Submit application"}
         </Button>
 

@@ -1,6 +1,21 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import LOGO from "../../../assets/images/logo.png";
+
+const NAV_ITEMS = [
+  { label: "Home", to: "/", end: true },
+  { label: "Services", to: "/services" },
+  { label: "Contact Us", to: "/contact" },
+];
+
+// Highlight the link for the page we're currently on.
+const navClass = ({ isActive }) =>
+  `font-body text-sm tracking-wider pb-1 transition-colors ${
+    isActive
+      ? "text-primary font-bold border-b-2 border-primary"
+      : "text-on-surface-variant hover:text-primary"
+  }`;
+
 export default function Navbar() {
   const { session, user, loading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -20,30 +35,11 @@ export default function Navbar() {
           </span>
         </Link>
         <div className="hidden md:flex items-center gap-10">
-          <a
-            className="font-body text-sm tracking-wider text-primary border-b-2 border-primary pb-1"
-            href="#"
-          >
-            Platform
-          </a>
-          <a
-            className="font-body text-sm tracking-wider text-on-surface-variant hover:text-primary transition-colors"
-            href="#"
-          >
-            Services
-          </a>
-          <a
-            className="font-body text-sm tracking-wider text-on-surface-variant hover:text-primary transition-colors"
-            href="#"
-          >
-            Contact Us
-          </a>
-          <a
-            className="font-body text-sm tracking-wider text-on-surface-variant hover:text-primary transition-colors"
-            href="#"
-          >
-            Blogs
-          </a>
+          {NAV_ITEMS.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
+              {item.label}
+            </NavLink>
+          ))}
         </div>
         <div className="flex items-center gap-4">
           {loading ? null : session ? (

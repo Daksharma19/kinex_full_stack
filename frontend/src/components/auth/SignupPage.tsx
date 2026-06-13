@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import GoogleButton from "./GoogleButton";
+import TermsCheckbox from "./TermsCheckbox";
 
 /**
  * Sign up via the backend (POST /auth/signup), which creates the auth user with
@@ -21,11 +22,16 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!agreed) {
+      setError("Please agree to the Terms & Conditions to continue.");
+      return;
+    }
     setError(null);
     setLoading(true);
 
@@ -69,11 +75,20 @@ export default function SignupPage() {
           <Label htmlFor="password">Password</Label>
           <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
+        <TermsCheckbox checked={agreed} onChange={setAgreed} />
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || !agreed}>
           {loading ? "Creating account…" : "Sign up"}
         </Button>
-        <GoogleButton />
+        <GoogleButton
+          beforeRedirect={() => {
+            if (!agreed) {
+              setError("Please agree to the Terms & Conditions to continue.");
+              return false;
+            }
+            return true;
+          }}
+        />
         <p className="text-sm text-center text-on-surface-variant">
           Already have an account?{" "}
           <Link to="/login" className="text-primary underline">

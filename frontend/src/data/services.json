@@ -1,0 +1,58 @@
+[
+  {
+    "id": "cardiology",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAA0cQ9J9QYj_HRAr8kvhIz146CoK-n9y0nMAf8-EoNPCnrJELnTEJMzQmkYh4zrpVrJ2QruCPYr9Z63b5rq6CD0fEVwEhEoSPKTPbLyrWxAdkK7BeStSGH6C2HVDn3xV4XV31-VrRA3_oA8KuSzv7V96mAxru3WgMcccPc7wb8NxtcMmfzaOaha1J8etOAY-0XxMUD2BS4OaIw3JhTZmtoWUDsDFiXI-42Hl-5vMYFr__LmQ3c3CVQ6jtfmH7eGxyvyLYgcasuYws-",
+    "title": "Advanced Cardiology",
+    "shortDesc": "Heart care reimagined through robotic diagnostics and minimally invasive preventive interventions.",
+    "longDesc": "Our cardiology program pairs experienced cardiologists with robotic diagnostics and AI-assisted imaging to detect risk earlier and intervene with precision. From routine heart-health screening and ECG to minimally invasive procedures and post-event rehabilitation, every plan is tailored to your physiology and recovery goals. We focus on prevention first — helping you understand your numbers and build sustainable habits — while remaining ready with advanced interventional options when they're needed."
+  },
+  {
+    "id": "physiotherapy",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuB5PvExmL2hdb5qAkdmwWCgJSAXAT2CpKXLM6rw8Ka0Q2HtI5VySKNQ50ixEsTRCZBGRdgwVLWgA0-_eAS71GQLLBYj5yx198PU3aMQnVDRSkrhW-JRF0bPiMyyTuT0yJLJWGgIGZv_Sqctk5-jcFU2gcQ96lFDHCcdHSHEgDk1e5AzlmY37F3O2zHHJPQ0HsqqKei8NFbZ7MS7B0OQxw3n87ys2Yc0In8mMc9zedNQI-tUsQzlNwwloAGLzzl4gbtYlWbWLWyKkfS0",
+    "title": "Precision Physiotherapy",
+    "shortDesc": "AI-assisted motion analysis to create hyper-personalized recovery programs for peak performance.",
+    "longDesc": "Recovery is not one-size-fits-all. Our physiotherapists use motion-capture analysis to map exactly how you move, then design progressive programs that restore strength, mobility and confidence. Whether you're rehabilitating after surgery, managing a chronic condition, or chasing a performance goal, we measure progress objectively and adjust your plan as you improve — combining hands-on therapy with guided home exercises you can track in the Kinex app."
+  },
+  {
+    "id": "dental-oral-health",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuCY3zmxfPrtDfs0-NWaaPz6ap6L5XWRJcdi32ZkGFgyZQn6-6twmwrwb2DTB0hv0gF_QJgVqN3ylMQlMjqS24-Q_Yv4CET5iOdKaG1B14SrsOVrCKLXhdYFU1U_hHRT8n9HcpPv93le3wP3wNSLKKsrzLq1-6d2PsVeQYvf-DLcvEUrSn8C5QvGix4W-WYLW4KYrtAg7vDqDYEW3-4L7BOdehDAEb5A8Aw6Pvrnv7mqF876zYMNAUp03SyQlqw2iYqXpVy6BxTKdG-D",
+    "title": "Dental & Oral Health",
+    "shortDesc": "Painless dentistry in a spa-like environment, from cosmetic restoration to surgical implants.",
+    "longDesc": "From routine cleanings to cosmetic restoration and surgical implants, our dental team delivers comfortable, modern care in a calm, spa-like setting. Digital scanning and same-visit planning reduce guesswork and chair time, while gentle techniques and clear communication keep anxiety low. We treat your oral health as part of your overall wellbeing — because a healthy mouth supports a healthier you."
+  },
+  {
+    "id": "general-surgery",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuC20YtS5yArENucmXRafxeoO2MoCaTTP1xCBsNElUFJsCk8FNPV5DPRpBMgcaZ5EQtYveOKA22qKI45UW9vw4Q5vV8VShQ_HBI0Ze4JlNjrFN2TGZaLsDnzzHjFuou43EAKg9tI0hUZSjyBB76bkPclogh8sj8PzPvqkIjfyNg_9A9SpOFrfYQRFiyFt49SI_YpRqotYyctVB2GgfweA8xXwyTnUiF97J_oxYEBSMTU4TZmca9ouudtzNyooSJg0BKlOYgo4rG3Cget",
+    "title": "General Surgery",
+    "shortDesc": "State-of-the-art surgical suites optimized for safety and rapid post-operative recovery.",
+    "longDesc": "Our surgical suites are built around two priorities: safety and a swift, comfortable recovery. Board-certified surgeons use minimally invasive techniques wherever possible to reduce scarring, pain and downtime. You'll be guided through every step — pre-op preparation, the procedure itself, and a structured recovery plan supported by private suites and remote follow-up — so you always know what to expect."
+  },
+  {
+    "id": "pediatrics",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuD2LWNHdC0X7GEO7LvMMoSI3YmXloZ25_MrJhgZvarYAWAOP7C3RMv7o4FcoFq1CDqtPJtWMrLgJXX-TAYyvu5cSl7tU9qm9Lpn0YGysiVKgC4RKjNEFo1rSyxK4QGidwuWzwPkCz3_dC427GxDVcbsiZrMkZ3-Hv7JfuqkjpZXHazxK3iGpzCl4ZeLfqssnWHj81_oyMTKYDt5v2pVQuI6VQ-GtgBar7ywCJSmMo9to6YA9O4iOXSZKrqkKM7CMZGOR_xKKx8S2uYE",
+    "title": "Pediatrics Care",
+    "shortDesc": "Child-centric specialized care designed to make medical visits an engaging, stress-free experience.",
+    "longDesc": "Children aren't small adults — they need care designed around them. Our pediatric team creates a warm, playful environment that turns clinic visits into positive experiences, while delivering rigorous developmental, preventive and acute care. Parents get clear guidance and easy scheduling, and every visit is documented in your family's record so growth, vaccinations and milestones are always at your fingertips."
+  },
+  {
+    "id": "neurology",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuDt-NyQKZPLtHOj5azLoaOMHxcxidPI8WJBmszMW3U_Bqzl8gKR8Zpn5Jop5oDB7K2HEWYv3RrytBGyMFjLwbTDkCA9z4t2H67nsqd4sVp_s1eYYLtzH3NzN19y3GZk-FiJ0Fwhmk6Kp9otCorHsHGl742_CTE9CR87-FyexvdQjksGB9lzygVsHS6mBJpwOMKNHOefkDOsk-Zs2lPvfH1BnqYqAVriD9sHR1wvCFcDv8PveTsVT_U4S7kcG8lixnIdZjH5XfLN-Ban",
+    "title": "Neurology Services",
+    "shortDesc": "Expert management of complex neurological conditions with focus on cognitive longevity.",
+    "longDesc": "Our neurology service supports patients living with migraine, epilepsy, movement disorders, stroke recovery and more. We combine advanced imaging and careful clinical assessment to reach an accurate diagnosis, then build long-term plans that prioritize quality of life and cognitive longevity. Coordinated care with physiotherapy and primary care means your whole picture is considered, not just isolated symptoms."
+  },
+  {
+    "id": "dermatology",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuBW7bbasA_bIxTUv34wVA7jxAvHiiM2xqNirckH-zvQFZRE8ghdFR7uJqaGIpnDqwjhb5DMmCNOKRMxqIQ2YK8m17-MUplx0_Aezm9MikYl4zGEvjA5B_MkTwwyP6JHlHMy5s6V4iWA4g-z7lFbyB_Jh8s5RcIpuZ11HxzLxvtQQ_j11NaFeIO_1rn_Z1qd86RQTHZVt037GSlB0u_wK2Pp1jxrP2jiUpKGfx8HkI0NQpI1X5xr6TdnNUbZlkBDxJT2fpyrpnQT2UX7",
+    "title": "Dermatology",
+    "shortDesc": "Comprehensive skin health, from medical diagnosis to cosmetic and laser treatments.",
+    "longDesc": "Healthy skin is the body's first line of defense. Our dermatologists handle everything from acne, eczema and skin-cancer screening to cosmetic and laser treatments. Using dermoscopy and digital tracking, we monitor changes over time and catch concerns early. Every plan balances medical effectiveness with how you want your skin to look and feel."
+  },
+  {
+    "id": "orthopedics",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuAH_a1OREHokFQSLXDKa8QCeVE4NKs4oHIWLkgmUeklHE5hccJ6bzXXniKhqww3FOOAu1MTH_FfSWkiYa0EMJ3xPZWMak4Tionj5s7cp7ivaFEVspJYQmSPacjCiiVJtWq_-q8ezX2ed3y-EFkWjdZYOFs0TeauaIjqI_yszAA4Mw4T4KDLdqmwW1IEkvkO9heoRz5Pcj_Zo_s11TFsSgYH0iqdRYdIyPaWDzsMGEJ_B-gcfIWiWUpgaHeCP7v4fga-ZYooytSRZy8ryvw",
+    "title": "Orthopedics",
+    "shortDesc": "Bone, joint and sports-injury care built around getting you moving again.",
+    "longDesc": "Whether it's a sports injury, joint pain or a fracture, our orthopedic team focuses on restoring function with the least invasive path possible. We combine imaging, targeted treatment and close collaboration with physiotherapy to rebuild strength and mobility. From conservative management to surgical repair and structured rehab, the goal is the same: getting you back to the activities you love, safely."
+  }
+]
