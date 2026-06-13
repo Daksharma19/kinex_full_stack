@@ -1,49 +1,31 @@
-import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Button } from "@/components/ui/button";
 import AdminDashboard from "./AdminDashboard";
+import DoctorDashboard from "./DoctorDashboard";
+import PatientDashboard from "./PatientDashboard";
 
 /**
  * Protected landing page. Only reachable through <ProtectedRoute>, so a session
- * is guaranteed here. Admins get the admin console; patients/doctors see their
- * own identity card.
+ * is guaranteed here. Renders the right console for the user's role.
  */
 export default function Dashboard() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
 
-  // Role-based view: admins manage doctor applications.
-  if (profile?.role === "ADMIN") {
-    return <AdminDashboard />;
-  }
+  if (profile?.role === "ADMIN") return <AdminDashboard />;
+  if (profile?.role === "DOCTOR") return <DoctorDashboard />;
+  if (profile?.role === "PATIENT") return <PatientDashboard />;
 
+  // Authenticated but no app profile yet (e.g. mid-onboarding).
   return (
     <div className="flex-1 w-full bg-background px-6 py-10 max-w-3xl mx-auto flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-primary">Dashboard</h1>
-        <Button variant="secondary" onClick={() => signOut()}>
-          Log out
-        </Button>
-      </div>
-
+      <h1 className="text-2xl font-bold text-primary">Dashboard</h1>
       <div className="rounded-xl border p-6 bg-card flex flex-col gap-2">
         <p className="text-sm text-on-surface-variant">Signed in as</p>
         <p className="font-medium">{user?.email}</p>
-        {profile ? (
-          <p className="text-sm">
-            Profile: <span className="font-medium">{profile.name}</span> ·{" "}
-            <span className="uppercase">{profile.role}</span>
-          </p>
-        ) : (
-          <p className="text-sm text-amber-700">
-            You're authenticated but have no app profile yet. Complete onboarding to
-            book appointments.
-          </p>
-        )}
+        <p className="text-sm text-amber-700">
+          You're authenticated but have no app profile yet. Complete onboarding to
+          book appointments.
+        </p>
       </div>
-
-      <Link to="/" className="text-primary underline text-sm">
-        ← Back to home
-      </Link>
     </div>
   );
 }

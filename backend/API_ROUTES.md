@@ -142,4 +142,6 @@ change it.
   `appointments.id`). The token's `sub` maps to `profiles.id`.
 - **Removed:** `POST /auth/register-patient` and `POST /auth/login` (now handled by
   Supabase on the frontend).
-- **Pending / not yet built:** verified-doctor list (`GET /doctor`), payments.
+- **`GET /api/v1/doctor`** — public list of bookable (VERIFIED) doctors, each with
+  `profile` (name/email/phone). Patients pick from this to book.
+- **Pending / not yet built:** payments.

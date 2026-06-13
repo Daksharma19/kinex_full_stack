@@ -171,6 +171,66 @@ export function adminPromoteToAdmin(userId: string) {
   );
 }
 
+// ---- Doctors (public) + appointments ----
+
+export interface VerifiedDoctor {
+  id: string;
+  specialization: string;
+  licenseNumber: string;
+  profile: { name: string; email: string; phone: string | null };
+}
+
+/** Public: list bookable (VERIFIED) doctors. */
+export function listVerifiedDoctors() {
+  return apiFetch<{ doctors: VerifiedDoctor[] }>("/doctor");
+}
+
+export type AppointmentMode = "ONLINE" | "HOME_VISIT";
+export type AppointmentStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "COMPLETED"
+  | "CANCELLED";
+
+export interface Appointment {
+  id: string;
+  mode: AppointmentMode;
+  scheduledAt: string;
+  status: AppointmentStatus;
+  notes: string | null;
+  patient: { profile: { name: string; email: string } };
+  doctor: { profile: { name: string; email: string } };
+}
+
+/** PATIENT-only: book an appointment with a verified doctor. */
+export function bookAppointment(input: {
+  doctorId: string;
+  mode: AppointmentMode;
+  scheduledAt: string;
+  notes?: string;
+}) {
+  return apiFetch<{ message: string; appointment: Appointment }>("/appointment", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+/** List the caller's appointments (patient: their bookings, doctor: with them). */
+export function listMyAppointments() {
+  return apiFetch<{ appointments: Appointment[] }>("/appointment");
+}
+
+/** DOCTOR/ADMIN: update an appointment's status. */
+export function updateAppointmentStatus(
+  id: string,
+  status: Exclude<AppointmentStatus, "PENDING">
+) {
+  return apiFetch<{ message: string; appointment: Appointment }>(
+    `/appointment/${id}/status`,
+    { method: "PATCH", body: JSON.stringify({ status }) }
+  );
+}
+
 /** Create the PATIENT profile for the current authenticated Supabase user. */
 export function createPatientProfile(input: {
   name: string;

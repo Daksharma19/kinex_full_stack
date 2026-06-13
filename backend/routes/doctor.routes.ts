@@ -9,6 +9,9 @@ const doctorRouter = Router();
 doctorRouter.post('/signup', doctorController.registerDoctor);
 // Applicant is already authenticated (e.g. via Google) but has no profile yet.
 doctorRouter.post('/apply', requireAuth, doctorController.applyAsDoctor);
+// Public: list bookable (VERIFIED) doctors. Declared before '/:id' so the
+// literal path wins over the param route.
+doctorRouter.get('/', doctorController.listVerifiedDoctors);
 // Public.
 doctorRouter.get('/:id', doctorController.getDoctorById);
 

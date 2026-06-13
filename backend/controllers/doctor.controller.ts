@@ -113,6 +113,23 @@ export async function applyAsDoctor(req: Request, res: Response) {
   }
 }
 
+/**
+ * Public list of bookable (VERIFIED) doctors. Patients pick from this to book.
+ */
+export async function listVerifiedDoctors(_req: Request, res: Response) {
+  try {
+    const doctors = await prisma.doctor.findMany({
+      where: { status: "VERIFIED" },
+      include: { profile: { select: { name: true, email: true, phone: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    return res.status(200).json({ doctors });
+  } catch (error) {
+    console.error("Error listing doctors:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 export async function getDoctorById(req: Request, res: Response) {
   try {
     const doctorId = req.params.id as string;
