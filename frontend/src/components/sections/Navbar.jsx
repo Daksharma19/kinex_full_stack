@@ -26,12 +26,12 @@ export default function Navbar() {
           >
             Platform
           </a>
-          <a
+          <Link
             className="font-body text-sm tracking-wider text-on-surface-variant hover:text-primary transition-colors"
-            href="#"
+            to="/services"
           >
             Services
-          </a>
+          </Link>
           <a
             className="font-body text-sm tracking-wider text-on-surface-variant hover:text-primary transition-colors"
             href="#"

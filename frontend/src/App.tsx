@@ -8,6 +8,7 @@ import LoginPage from "./components/auth/LoginPage";
 import SignupPage from "./components/auth/SignupPage";
 import DoctorApplyPage from "./components/auth/DoctorApplyPage";
 import TermsPage from "./components/TermsPage";
+import ServicesPage from "./components/ServicesPage";
 import Dashboard from "./components/Dashboard";
 
 /**
@@ -26,6 +27,7 @@ export function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/apply-doctor" element={<DoctorApplyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/services" element={<ServicesPage />} />
             <Route
               path="/dashboard"
               element={
