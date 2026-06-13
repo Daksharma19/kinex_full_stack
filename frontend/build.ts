@@ -14,6 +14,10 @@ const result = await Bun.build({
   minify: true,
   target: "browser",
   sourcemap: "linked",
+  // Inline BUN_PUBLIC_* env vars (SUPABASE_URL/ANON_KEY/API_BASE_URL) into the
+  // production bundle, matching the dev server's behaviour. Without this the
+  // built site would read undefined config and fail to start.
+  env: "BUN_PUBLIC_*",
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
   },
