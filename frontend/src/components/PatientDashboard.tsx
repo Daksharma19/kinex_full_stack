@@ -35,23 +35,25 @@ export default function PatientDashboard() {
     setAppointments(appointments);
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [{ doctors }] = await Promise.all([
-          listVerifiedDoctors(),
-          loadAppointments(),
-        ]);
-        setDoctors(doctors);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [{ doctors }] = await Promise.all([
+        listVerifiedDoctors(),
+        loadAppointments(),
+      ]);
+      setDoctors(doctors);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   }, [loadAppointments]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
   function openBooking(d: VerifiedDoctor) {
     setSelected(d);
@@ -87,11 +89,16 @@ export default function PatientDashboard() {
 
   return (
     <div className="flex-1 w-full bg-background px-6 py-10 max-w-5xl mx-auto flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-bold text-primary">
-          Welcome{profile?.name ? `, ${profile.name}` : ""}
-        </h1>
-        <p className="text-sm text-on-surface-variant">Book an appointment with a verified doctor.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-primary">
+            Welcome{profile?.name ? `, ${profile.name}` : ""}
+          </h1>
+          <p className="text-sm text-on-surface-variant">Book an appointment with a verified doctor.</p>
+        </div>
+        <Button variant="secondary" onClick={loadAll} disabled={loading}>
+          {loading ? "Refreshing…" : "Refresh"}
+        </Button>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

@@ -107,20 +107,25 @@ function DoctorApplications() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex gap-2">
-        {STATUS_TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === t
-                ? "bg-primary-container text-on-primary"
-                : "border text-on-surface-variant hover:bg-muted"
-            }`}
-          >
-            {t.charAt(0) + t.slice(1).toLowerCase()}
-          </button>
-        ))}
+      <div className="flex gap-2 items-center justify-between">
+        <div className="flex gap-2">
+          {STATUS_TABS.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                tab === t
+                  ? "bg-primary-container text-on-primary"
+                  : "border text-on-surface-variant hover:bg-muted"
+              }`}
+            >
+              {t.charAt(0) + t.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+        <Button variant="secondary" onClick={() => load(tab)} disabled={loading}>
+          {loading ? "Refreshing…" : "Refresh"}
+        </Button>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -225,10 +230,15 @@ function ManageAdmins() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-on-surface-variant">
-        Promote any registered user to admin. Admins can verify doctors and manage
-        other admins.
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-sm text-on-surface-variant">
+          Promote any registered user to admin. Admins can verify doctors and manage
+          other admins.
+        </p>
+        <Button variant="secondary" onClick={load} disabled={loading}>
+          {loading ? "Refreshing…" : "Refresh"}
+        </Button>
+      </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

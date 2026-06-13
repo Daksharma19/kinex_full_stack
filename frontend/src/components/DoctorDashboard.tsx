@@ -56,16 +56,21 @@ export default function DoctorDashboard() {
 
   return (
     <div className="flex-1 w-full bg-background px-6 py-10 max-w-4xl mx-auto flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-bold text-primary">
-          Welcome{profile?.name ? `, Dr. ${profile.name}` : ""}
-        </h1>
-        {doctorStatus && doctorStatus !== "VERIFIED" && (
-          <p className="text-sm text-amber-700 mt-1">
-            Your application is <strong>{doctorStatus}</strong>. You can receive
-            appointments once an admin verifies you.
-          </p>
-        )}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-primary">
+            Welcome{profile?.name ? `, Dr. ${profile.name}` : ""}
+          </h1>
+          {doctorStatus && doctorStatus !== "VERIFIED" && (
+            <p className="text-sm text-amber-700 mt-1">
+              Your application is <strong>{doctorStatus}</strong>. You can receive
+              appointments once an admin verifies you.
+            </p>
+          )}
+        </div>
+        <Button variant="secondary" onClick={load} disabled={loading}>
+          {loading ? "Refreshing…" : "Refresh"}
+        </Button>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
