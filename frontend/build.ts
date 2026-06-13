@@ -26,3 +26,9 @@ const result = await Bun.build({
 for (const output of result.outputs) {
   console.log(` ${path.relative(process.cwd(), output.path)}  ${(output.size / 1024).toFixed(1)} KB`);
 }
+
+// SPA fallback for static hosts (Cloudflare Pages / Netlify): route every path
+// to index.html so client-side routes like /services or /dashboard work on a
+// direct hit or refresh. (Vercel uses vercel.json rewrites instead.)
+await Bun.write(path.join(outdir, "_redirects"), "/*    /index.html   200\n");
+

@@ -67,8 +67,10 @@ bun run index.ts               # start command (serves the API)
 5. Deploy. Vercel runs `bun run build` and serves `dist/` with SPA fallback
    (so `/services`, `/dashboard`, etc. work on refresh).
 
-> Netlify alternative: Base directory `frontend`, build `bun run build`,
-> publish `frontend/dist`, and add a redirect `/* /index.html 200`.
+> **Cloudflare Pages / Netlify alternative:** set the project root / base to
+> `frontend`, build command `bun run build`, output/publish directory `dist`,
+> and add the three `BUN_PUBLIC_*` build env vars. SPA routing is handled
+> automatically — the build emits a `dist/_redirects` file (`/* /index.html 200`).
 
 ---
 
