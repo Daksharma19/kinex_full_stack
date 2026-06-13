@@ -7,6 +7,7 @@ import Home from "./components/Home.jsx";
 import LoginPage from "./components/auth/LoginPage";
 import SignupPage from "./components/auth/SignupPage";
 import DoctorApplyPage from "./components/auth/DoctorApplyPage";
+import TermsPage from "./components/TermsPage";
 import Dashboard from "./components/Dashboard";
 
 /**
@@ -24,6 +25,7 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/apply-doctor" element={<DoctorApplyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
             <Route
               path="/dashboard"
               element={
