@@ -1,5 +1,76 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db.ts";
+import { supabaseAdmin } from "../utils/supabase.ts";
+
+/**
+ * Public patient signup that does NOT depend on email delivery.
+ *
+ * Supabase's built-in email is rate-limited/unreliable, and with "Confirm email"
+ * ON a normal frontend signUp() leaves the user stuck waiting for a mail that may
+ * never arrive. Instead we create the auth user server-side with the service-role
+ * admin client and `email_confirm: true`, so the account is immediately usable.
+ * The frontend then signs in with the same credentials to obtain a session.
+ *
+ * Creates the Supabase auth user AND the linked PATIENT profile in one call.
+ */
+export async function registerPatient(req: Request, res: Response) {
+  try {
+    const { email, password, name, phone, address, dateOfBirth } = req.body;
+    if (!email || !password || !name) {
+      return res
+        .status(400)
+        .json({ message: "email, password and name are required" });
+    }
+
+    // 1. Create the Supabase auth user, email pre-confirmed.
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (error || !data?.user) {
+      // Most common cause: the email is already registered.
+      const already = error?.message?.toLowerCase().includes("already");
+      return res.status(already ? 409 : 400).json({
+        message: already
+          ? "An account with this email already exists — try logging in."
+          : "Failed to create account",
+        error: error?.message,
+      });
+    }
+
+    // 2. Create the matching PATIENT profile (id = auth user id) + Patient row.
+    try {
+      const profile = await prisma.profile.create({
+        data: {
+          id: data.user.id,
+          email,
+          name,
+          role: "PATIENT",
+          phone: phone || null,
+          patient: {
+            create: {
+              address: address || null,
+              dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+            },
+          },
+        },
+        include: { patient: true },
+      });
+      return res.status(201).json({ message: "Account created", profile });
+    } catch (profileErr) {
+      // Roll back the orphaned auth user so the email can be retried cleanly.
+      await supabaseAdmin.auth.admin.deleteUser(data.user.id).catch(() => {});
+      throw profileErr;
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Failed to create account",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 
 /**
  * Create the application profile for an already-authenticated Supabase user.

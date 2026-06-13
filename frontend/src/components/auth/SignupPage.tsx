@@ -1,18 +1,17 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import { createPatientProfile } from "../../lib/api";
+import { signUpPatient } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 /**
- * Sign up with Supabase, then (if a session is returned immediately, i.e. email
- * confirmation is OFF) create the backend PATIENT profile via POST /auth/profile.
- *
- * If the project has "Confirm email" ON, signUp returns no session — we tell the
- * user to confirm their email; profile creation happens after they log in.
+ * Sign up via the backend (POST /auth/signup), which creates the auth user with
+ * email pre-confirmed AND the PATIENT profile. We then sign in with the same
+ * credentials to obtain a session, and AuthProvider picks it up. No email
+ * confirmation step — works regardless of the project's email settings.
  */
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -22,39 +21,32 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    setNotice(null);
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
+    try {
+      // 1. Backend creates the pre-confirmed auth user + patient profile.
+      await signUpPatient({ email, password, name });
+
+      // 2. Sign in to get a session on the shared client.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) throw signInError;
+
+      // 3. Load the freshly created profile and go to the dashboard.
+      await refreshProfile();
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
       setLoading(false);
-      setError(error.message);
-      return;
     }
-
-    // Session present => email confirmation is off, user is logged in now.
-    if (data.session) {
-      try {
-        await createPatientProfile({ name });
-        await refreshProfile();
-        navigate("/dashboard", { replace: true });
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    // No session => must confirm email first.
-    setLoading(false);
-    setNotice("Check your email to confirm your account, then log in.");
   }
 
   return (
@@ -77,7 +69,6 @@ export default function SignupPage() {
           <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        {notice && <p className="text-sm text-green-700">{notice}</p>}
         <Button type="submit" disabled={loading}>
           {loading ? "Creating account…" : "Sign up"}
         </Button>

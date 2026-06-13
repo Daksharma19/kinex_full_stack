@@ -65,6 +65,23 @@ export async function getMe(): Promise<MeResponse> {
   }
 }
 
+/**
+ * Register a new patient (public). The backend creates the auth user with email
+ * pre-confirmed AND the profile, so no email confirmation is needed. After this
+ * resolves, sign in with the same credentials to get a session.
+ */
+export function signUpPatient(input: {
+  email: string;
+  password: string;
+  name: string;
+  phone?: string;
+}) {
+  return apiFetch("/auth/signup", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 /** Create the PATIENT profile for the current authenticated Supabase user. */
 export function createPatientProfile(input: {
   name: string;
