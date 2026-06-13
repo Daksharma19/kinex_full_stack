@@ -51,7 +51,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="flex-1 flex items-center justify-center bg-background px-4 py-12">
       <form
         onSubmit={onSubmit}
         className="w-full max-w-sm flex flex-col gap-4 p-8 rounded-xl border shadow-sm bg-card"

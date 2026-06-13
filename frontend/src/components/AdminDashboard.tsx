@@ -58,7 +58,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background px-6 py-10 max-w-5xl mx-auto flex flex-col gap-6">
+    <div className="flex-1 w-full bg-background px-6 py-10 max-w-5xl mx-auto flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-primary">Admin · Doctor applications</h1>
         <Button variant="secondary" onClick={() => signOut()}>
