@@ -113,6 +113,96 @@ export async function applyAsDoctor(req: Request, res: Response) {
   }
 }
 
+const AVATAR_BUCKET = "avatars";
+
+/**
+ * Update the signed-in doctor's own profile. DOCTOR-only (route middleware).
+ * Editable: profile name/phone and the doctor's specialization. License number
+ * and verification status are intentionally not self-editable.
+ */
+export async function updateMyDoctorProfile(req: Request, res: Response) {
+  try {
+    const profileId = req.profile!.id;
+    const { name, phone, specialization } = req.body;
+
+    if (name !== undefined && !String(name).trim()) {
+      return res.status(400).json({ message: "name cannot be empty" });
+    }
+
+    const profile = await prisma.profile.update({
+      where: { id: profileId },
+      data: {
+        ...(name !== undefined ? { name: String(name).trim() } : {}),
+        ...(phone !== undefined ? { phone: phone || null } : {}),
+        ...(specialization !== undefined
+          ? { doctor: { update: { specialization } } }
+          : {}),
+      },
+      include: { doctor: true },
+    });
+
+    return res.status(200).json({ message: "Profile updated", profile });
+  } catch (error) {
+    console.error("Error updating doctor profile:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
+ * Upload/replace the signed-in doctor's profile photo. Accepts a base64 data URL
+ * (or raw base64 + contentType), stores it in the public `avatars` bucket via the
+ * service-role client (bucket auto-created if missing), and saves the public URL
+ * on the profile. DOCTOR-only (route middleware).
+ */
+export async function uploadMyPhoto(req: Request, res: Response) {
+  try {
+    const profileId = req.profile!.id;
+    const { image, contentType } = req.body as { image?: string; contentType?: string };
+    if (!image) return res.status(400).json({ message: "image is required" });
+
+    // Accept a data URL ("data:image/png;base64,....") or raw base64.
+    let base64 = image;
+    let ct = contentType || "image/png";
+    const m = /^data:(.+);base64,(.*)$/.exec(image);
+    if (m) {
+      ct = m[1] ?? ct;
+      base64 = m[2] ?? "";
+    }
+    const buffer = Buffer.from(base64, "base64");
+    if (buffer.length === 0) return res.status(400).json({ message: "Invalid image data" });
+
+    // Ensure the public bucket exists (idempotent — ignore "already exists").
+    await supabaseAdmin.storage
+      .createBucket(AVATAR_BUCKET, { public: true })
+      .catch(() => {});
+
+    const ext = (ct.split("/")[1] || "png").replace("+xml", "");
+    const path = `${profileId}.${ext}`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from(AVATAR_BUCKET)
+      .upload(path, buffer, { contentType: ct, upsert: true });
+    if (upErr) {
+      console.error("Photo upload failed:", upErr);
+      return res.status(500).json({ message: "Failed to store image", error: upErr.message });
+    }
+
+    const { data } = supabaseAdmin.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+    // Cache-bust so the browser fetches the new image after an overwrite.
+    const photoUrl = `${data.publicUrl}?v=${Date.now()}`;
+
+    const profile = await prisma.profile.update({
+      where: { id: profileId },
+      data: { photoUrl },
+      include: { doctor: true },
+    });
+
+    return res.status(200).json({ message: "Photo updated", profile });
+  } catch (error) {
+    console.error("Error uploading photo:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 /**
  * Public list of bookable (VERIFIED) doctors. Patients pick from this to book.
  */

@@ -24,7 +24,8 @@ app.use(
   })
 );
 app.use(morgan("dev"));
-app.use(express.json());
+// Larger limit so base64 profile-photo uploads fit.
+app.use(express.json({ limit: "8mb" }));
 
 // handling routes
 app.use('/api/v1/auth', authRoutes);

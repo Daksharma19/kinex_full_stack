@@ -1,12 +1,23 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   listMyAppointments,
   updateAppointmentStatus,
+  updateDoctorProfile,
+  uploadDoctorPhoto,
   type Appointment,
   type AppointmentStatus,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import StatusBadge from "./StatusBadge";
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Could not read the image file"));
+    reader.readAsDataURL(file);
+  });
+}
 
 function initials(name: string) {
   return name
@@ -30,14 +41,65 @@ const isSameDay = (a: Date, b: Date) =>
  * stats. Wires GET /appointment and PATCH /appointment/:id/status.
  */
 export default function DoctorDashboard() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const doctor = (profile as { doctor?: { status: string; specialization: string; licenseNumber: string } } | null)?.doctor;
   const doctorStatus = doctor?.status;
+  const photoUrl = (profile as { photoUrl?: string | null } | null)?.photoUrl ?? null;
+  const phone = (profile as { phone?: string | null } | null)?.phone ?? "";
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+
+  // Profile editing + photo upload state.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ name: "", phone: "", specialization: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  function startEdit() {
+    setForm({
+      name: profile?.name || "",
+      phone: phone || "",
+      specialization: doctor?.specialization || "",
+    });
+    setProfileError(null);
+    setEditing(true);
+  }
+
+  async function saveProfile() {
+    setSavingProfile(true);
+    setProfileError(null);
+    try {
+      await updateDoctorProfile(form);
+      await refreshProfile();
+      setEditing(false);
+    } catch (err) {
+      setProfileError((err as Error).message);
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function onPhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    setProfileError(null);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      await uploadDoctorPhoto(dataUrl);
+      await refreshProfile();
+    } catch (err) {
+      setProfileError((err as Error).message);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -217,7 +279,7 @@ export default function DoctorDashboard() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <span className="flex items-center gap-1 text-xs font-bold text-primary bg-secondary-container px-3 py-1.5 rounded-full">
                           <span className="material-symbols-outlined text-sm">
                             {a.mode === "ONLINE" ? "videocam" : "location_on"}
@@ -225,6 +287,7 @@ export default function DoctorDashboard() {
                           {a.mode === "ONLINE" ? "Telehealth" : "In-person"}
                         </span>
                         <StatusBadge status={a.status} />
+                        <RowActions appt={a} busy={actingId === a.id} onSet={setStatus} />
                       </div>
                     </div>
                   );
@@ -237,37 +300,110 @@ export default function DoctorDashboard() {
         {/* Right: clinical profile */}
         <div className="space-y-8">
           <section className="bg-surface-container-lowest p-8 rounded-3xl border border-outline-variant/10 shadow-sm">
-            <h2 className="text-xl font-bold text-on-surface mb-6">Clinical Profile</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-on-surface">Clinical Profile</h2>
+              {!editing && (
+                <button
+                  onClick={startEdit}
+                  className="flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+                >
+                  <span className="material-symbols-outlined text-base">edit</span> Edit
+                </button>
+              )}
+            </div>
+
+            {/* Avatar + photo upload */}
             <div className="flex flex-col items-center mb-6">
-              <div className="w-28 h-28 rounded-3xl bg-primary-container text-on-primary flex items-center justify-center text-3xl font-black ring-4 ring-background shadow-lg">
-                {profile?.name ? initials(profile.name) : "DR"}
+              <div className="relative group">
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt="Profile"
+                    className="w-28 h-28 rounded-3xl object-cover ring-4 ring-background shadow-lg"
+                  />
+                ) : (
+                  <div className="w-28 h-28 rounded-3xl bg-primary-container text-on-primary flex items-center justify-center text-3xl font-black ring-4 ring-background shadow-lg">
+                    {profile?.name ? initials(profile.name) : "DR"}
+                  </div>
+                )}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="absolute -bottom-2 -right-2 bg-primary text-on-primary p-2 rounded-xl shadow-lg active:scale-90 transition-transform disabled:opacity-50"
+                  title="Change photo"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    {uploadingPhoto ? "hourglass_top" : "photo_camera"}
+                  </span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onPhotoSelected}
+                />
               </div>
               <p className="mt-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                Clinical Identity
+                {uploadingPhoto ? "Uploading…" : "Clinical Identity"}
               </p>
             </div>
-            <div className="space-y-4">
-              <Field label="Full Name" value={profile?.name ? `Dr. ${profile.name}` : "—"} />
-              <Field label="Specialization" value={doctor?.specialization || "—"} />
-              <Field label="License Number" value={doctor?.licenseNumber || "—"} />
-              <Field label="Email" value={profile?.email || "—"} />
-              <div>
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-                  Verification
-                </p>
-                <span
-                  className={`text-xs font-bold px-3 py-1.5 rounded-full ${
-                    doctorStatus === "VERIFIED"
-                      ? "bg-green-100 text-green-800"
-                      : doctorStatus === "REJECTED"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-amber-100 text-amber-800"
-                  }`}
-                >
-                  {doctorStatus || "—"}
-                </span>
+
+            {profileError && <p className="text-sm text-error mb-4">{profileError}</p>}
+
+            {editing ? (
+              <div className="space-y-4">
+                <EditField label="Full Name" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} />
+                <EditField label="Phone" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
+                <EditField
+                  label="Specialization"
+                  value={form.specialization}
+                  onChange={(v) => setForm((f) => ({ ...f, specialization: v }))}
+                />
+                <Field label="License Number" value={doctor?.licenseNumber || "—"} />
+                <Field label="Email" value={profile?.email || "—"} />
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={saveProfile}
+                    disabled={savingProfile}
+                    className="flex-1 bg-primary-container text-on-primary py-2.5 rounded-xl font-bold hover:brightness-110 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {savingProfile ? "Saving…" : "Save"}
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    disabled={savingProfile}
+                    className="px-4 py-2.5 rounded-xl border border-outline-variant/30 text-sm font-bold text-on-surface-variant hover:bg-surface-container-low"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <Field label="Full Name" value={profile?.name ? `Dr. ${profile.name}` : "—"} />
+                <Field label="Specialization" value={doctor?.specialization || "—"} />
+                <Field label="Phone" value={phone || "—"} />
+                <Field label="License Number" value={doctor?.licenseNumber || "—"} />
+                <Field label="Email" value={profile?.email || "—"} />
+                <div>
+                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
+                    Verification
+                  </p>
+                  <span
+                    className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+                      doctorStatus === "VERIFIED"
+                        ? "bg-green-100 text-green-800"
+                        : doctorStatus === "REJECTED"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {doctorStatus || "—"}
+                  </span>
+                </div>
+              </div>
+            )}
           </section>
         </div>
       </div>
@@ -347,6 +483,29 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className="w-full bg-surface-container-low rounded-xl px-3 py-2 text-on-surface font-medium text-sm break-words">
         {value}
       </p>
+    </div>
+  );
+}
+
+function EditField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
+        {label}
+      </p>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-on-surface font-medium text-sm px-3 py-2"
+      />
     </div>
   );
 }

@@ -48,9 +48,31 @@ export interface MeResponse {
     email: string;
     name: string;
     role: "PATIENT" | "DOCTOR" | "ADMIN";
+    phone?: string | null;
+    photoUrl?: string | null;
     patient?: unknown;
     doctor?: unknown;
   } | null;
+}
+
+/** DOCTOR-only: update own profile (name/phone/specialization). */
+export function updateDoctorProfile(input: {
+  name?: string;
+  phone?: string;
+  specialization?: string;
+}) {
+  return apiFetch<{ message: string }>("/doctor/me", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+/** DOCTOR-only: upload/replace own profile photo (base64 data URL). */
+export function uploadDoctorPhoto(dataUrl: string) {
+  return apiFetch<{ message: string }>("/doctor/me/photo", {
+    method: "POST",
+    body: JSON.stringify({ image: dataUrl }),
+  });
 }
 
 /** Load the authenticated user's app profile (null if not onboarded yet). */
