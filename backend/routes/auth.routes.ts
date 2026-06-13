@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as authController from '../controllers/auth.controller';
-import { requireAuth } from '../middleware/auth.middleware';
+import { requireAuth, requireProfile } from '../middleware/auth.middleware';
 const authRouter = Router();
 
 // Public: create a patient account (auth user + profile) with email
@@ -13,5 +13,9 @@ authRouter.post('/profile', requireAuth, authController.createPatientProfile);
 // authenticated user who has NOT onboarded yet so it can return { profile: null }
 // and the frontend can route them into profile creation.
 authRouter.get('/me', requireAuth, authController.getMe);
+
+// Signed-in user manages their own profile + photo (any role).
+authRouter.patch('/me', requireAuth, requireProfile, authController.updateMyProfile);
+authRouter.post('/me/photo', requireAuth, requireProfile, authController.uploadMyPhoto);
 
 export default authRouter;

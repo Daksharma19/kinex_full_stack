@@ -124,6 +124,99 @@ export async function createPatientProfile(req: Request, res: Response) {
   }
 }
 
+const AVATAR_BUCKET = "avatars";
+
+/**
+ * Update the signed-in user's own profile. Any authenticated profile may call it.
+ * Common fields (name/phone) apply to everyone; dateOfBirth/address are written
+ * to the linked Patient row only for PATIENT callers.
+ */
+export async function updateMyProfile(req: Request, res: Response) {
+  try {
+    const caller = req.profile!;
+    const { name, phone, dateOfBirth, address } = req.body;
+
+    if (name !== undefined && !String(name).trim()) {
+      return res.status(400).json({ message: "name cannot be empty" });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (name !== undefined) data.name = String(name).trim();
+    if (phone !== undefined) data.phone = phone || null;
+
+    if (caller.role === "PATIENT" && (dateOfBirth !== undefined || address !== undefined)) {
+      data.patient = {
+        update: {
+          ...(dateOfBirth !== undefined
+            ? { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null }
+            : {}),
+          ...(address !== undefined ? { address: address || null } : {}),
+        },
+      };
+    }
+
+    const profile = await prisma.profile.update({
+      where: { id: caller.id },
+      data,
+      include: { patient: true, doctor: true },
+    });
+
+    return res.status(200).json({ message: "Profile updated", profile });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
+ * Upload/replace the signed-in user's profile photo. Accepts a base64 data URL,
+ * stores it in the public `avatars` bucket (auto-created) via the service-role
+ * client, and saves the public URL. Any authenticated profile may call it.
+ */
+export async function uploadMyPhoto(req: Request, res: Response) {
+  try {
+    const caller = req.profile!;
+    const { image, contentType } = req.body as { image?: string; contentType?: string };
+    if (!image) return res.status(400).json({ message: "image is required" });
+
+    let base64 = image;
+    let ct = contentType || "image/png";
+    const m = /^data:(.+);base64,(.*)$/.exec(image);
+    if (m) {
+      ct = m[1] ?? ct;
+      base64 = m[2] ?? "";
+    }
+    const buffer = Buffer.from(base64, "base64");
+    if (buffer.length === 0) return res.status(400).json({ message: "Invalid image data" });
+
+    await supabaseAdmin.storage.createBucket(AVATAR_BUCKET, { public: true }).catch(() => {});
+
+    const ext = (ct.split("/")[1] || "png").replace("+xml", "");
+    const path = `${caller.id}.${ext}`;
+    const { error: upErr } = await supabaseAdmin.storage
+      .from(AVATAR_BUCKET)
+      .upload(path, buffer, { contentType: ct, upsert: true });
+    if (upErr) {
+      console.error("Photo upload failed:", upErr);
+      return res.status(500).json({ message: "Failed to store image", error: upErr.message });
+    }
+
+    const { data } = supabaseAdmin.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+    const photoUrl = `${data.publicUrl}?v=${Date.now()}`;
+
+    const profile = await prisma.profile.update({
+      where: { id: caller.id },
+      data: { photoUrl },
+      include: { patient: true, doctor: true },
+    });
+
+    return res.status(200).json({ message: "Photo updated", profile });
+  } catch (error) {
+    console.error("Error uploading photo:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 /**
  * Return the authenticated user's profile plus its patient/doctor relation.
  * Guarded by requireAuth only (not requireProfile), so a user who has signed up

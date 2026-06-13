@@ -50,9 +50,30 @@ export interface MeResponse {
     role: "PATIENT" | "DOCTOR" | "ADMIN";
     phone?: string | null;
     photoUrl?: string | null;
-    patient?: unknown;
+    patient?: { dateOfBirth?: string | null; address?: string | null } | null;
     doctor?: unknown;
   } | null;
+}
+
+/** Update the signed-in user's own profile (any role). */
+export function updateMyProfile(input: {
+  name?: string;
+  phone?: string;
+  dateOfBirth?: string | null;
+  address?: string | null;
+}) {
+  return apiFetch<{ message: string }>("/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+/** Upload/replace the signed-in user's own photo (base64 data URL). */
+export function uploadMyPhoto(dataUrl: string) {
+  return apiFetch<{ message: string }>("/auth/me/photo", {
+    method: "POST",
+    body: JSON.stringify({ image: dataUrl }),
+  });
 }
 
 /** DOCTOR-only: update own profile (name/phone/specialization). */
