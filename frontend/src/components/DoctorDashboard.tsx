@@ -8,6 +8,7 @@ import {
   type AppointmentStatus,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import StatusBadge from "./StatusBadge";
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -29,6 +30,47 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+// Build a maps link for a home visit: prefer exact coordinates (opens the pin in
+// the device's default maps app), otherwise fall back to a text address search.
+function mapsUrl(appt: Appointment): string | null {
+  const { latitude, longitude, address } = appt.patient;
+  if (typeof latitude === "number" && typeof longitude === "number") {
+    return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+  }
+  if (address) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  }
+  return null;
+}
+
+// For HOME_VISIT appointments: show the address + a button to open the location
+// in the doctor's default maps application.
+function HomeVisitLocation({ appt }: { appt: Appointment }) {
+  if (appt.mode !== "HOME_VISIT") return null;
+  const { address } = appt.patient;
+  const url = mapsUrl(appt);
+  if (!address && !url) return null;
+  return (
+    <div className="mt-2 flex flex-col gap-1 rounded-lg bg-surface-container-low px-3 py-2">
+      <div className="flex items-start gap-2">
+        <span className="material-symbols-outlined text-base text-primary">home_pin</span>
+        <span className="text-xs text-on-surface-variant break-words">{address || "Location pinned"}</span>
+      </div>
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+        >
+          <span className="material-symbols-outlined text-sm">directions</span>
+          Open in Maps
+        </a>
+      )}
+    </div>
+  );
+}
+
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
@@ -42,6 +84,7 @@ const isSameDay = (a: Date, b: Date) =>
  */
 export default function DoctorDashboard() {
   const { profile, refreshProfile } = useAuth();
+  const toast = useToast();
   const doctor = (profile as { doctor?: { status: string; specialization: string; licenseNumber: string } } | null)?.doctor;
   const doctorStatus = doctor?.status;
   const photoUrl = (profile as { photoUrl?: string | null } | null)?.photoUrl ?? null;
@@ -77,8 +120,11 @@ export default function DoctorDashboard() {
       await updateDoctorProfile(form);
       await refreshProfile();
       setEditing(false);
+      toast.success("Profile saved");
     } catch (err) {
-      setProfileError((err as Error).message);
+      const msg = (err as Error).message;
+      setProfileError(msg);
+      toast.error(msg || "Could not save your profile");
     } finally {
       setSavingProfile(false);
     }
@@ -93,8 +139,9 @@ export default function DoctorDashboard() {
       const dataUrl = await fileToDataUrl(file);
       await uploadDoctorPhoto(dataUrl);
       await refreshProfile();
+      toast.success("Photo updated");
     } catch (err) {
-      setProfileError((err as Error).message);
+      toast.error((err as Error).message || "Could not upload the photo");
     } finally {
       setUploadingPhoto(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -124,8 +171,11 @@ export default function DoctorDashboard() {
     try {
       await updateAppointmentStatus(id, status);
       await load();
+      toast.success(`Appointment ${status.toLowerCase()}`);
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message;
+      setError(msg);
+      toast.error(msg || "Could not update the appointment");
     } finally {
       setActingId(null);
     }
@@ -231,7 +281,10 @@ export default function DoctorDashboard() {
                               <div className="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container text-xs font-bold">
                                 {initials(a.patient.profile.name)}
                               </div>
-                              <span className="font-medium">{a.patient.profile.name}</span>
+                              <div>
+                                <span className="font-medium">{a.patient.profile.name}</span>
+                                <HomeVisitLocation appt={a} />
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-5"><StatusBadge status={a.status} /></td>
@@ -277,6 +330,7 @@ export default function DoctorDashboard() {
                             {d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             {a.notes ? ` · “${a.notes}”` : ""}
                           </p>
+                          <HomeVisitLocation appt={a} />
                         </div>
                       </div>
                       <div className="flex items-center gap-3 flex-wrap">

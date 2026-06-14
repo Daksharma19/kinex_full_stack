@@ -67,6 +67,10 @@ model Patient {
   profileId   String    @unique @map("profile_id") @db.Uuid
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
   address     String?
+  // Geo-coordinates of the patient's address, captured at booking time so a
+  // doctor on a home visit can open the exact spot in their maps app.
+  latitude    Float?
+  longitude   Float?
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 

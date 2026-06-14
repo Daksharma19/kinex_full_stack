@@ -10,11 +10,15 @@ import {
   type AppointmentMode,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import StatusBadge from "./StatusBadge";
+import AddressLocationModal, {
+  type AddressLocationResult,
+} from "./AddressLocationModal";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -38,8 +42,18 @@ function initials(name: string) {
  */
 export default function PatientDashboard() {
   const { profile, refreshProfile } = useAuth();
+  const toast = useToast();
   const photoUrl = (profile as { photoUrl?: string | null } | null)?.photoUrl ?? null;
   const patient = (profile as { patient?: { dateOfBirth?: string | null; address?: string | null } | null } | null)?.patient;
+  const phoneOnFile = (profile as { phone?: string | null } | null)?.phone ?? "";
+
+  // A patient must have a phone AND an address before they can book a visit.
+  const needsContactDetails = !phoneOnFile?.trim() || !patient?.address?.trim();
+
+  // Address/location collection modal (shown when details are missing).
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
 
   const [doctors, setDoctors] = useState<VerifiedDoctor[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -58,8 +72,12 @@ export default function PatientDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ name: "", phone: "", dateOfBirth: "", address: "" });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [savedTick, setSavedTick] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  // Debounce timer for auto-saving profile edits; guard against saving the
+  // initial values we seed from the profile (only user edits should persist).
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirtyRef = useRef(false);
 
   const loadAppointments = useCallback(async () => {
     const { appointments } = await listMyAppointments();
@@ -83,8 +101,10 @@ export default function PatientDashboard() {
     loadAll();
   }, [loadAll]);
 
-  // Seed the profile form whenever the auth profile changes.
+  // Seed the profile form from the auth profile. Skip while the user is actively
+  // editing (dirty) so an auto-save round-trip doesn't overwrite their typing.
   useEffect(() => {
+    if (dirtyRef.current) return;
     setForm({
       name: profile?.name || "",
       phone: (profile as { phone?: string | null } | null)?.phone || "",
@@ -99,6 +119,45 @@ export default function PatientDashboard() {
     setScheduledAt("");
     setNotes("");
     setError(null);
+  }
+
+  // Entry point for the "Book New Appointment" button: collect missing contact
+  // details first, otherwise just toggle the booking panel.
+  function handleBookClick() {
+    if (showBooking) {
+      setShowBooking(false);
+      return;
+    }
+    if (needsContactDetails) {
+      setAddressError(null);
+      setShowAddressModal(true);
+      return;
+    }
+    setShowBooking(true);
+  }
+
+  // Persist the phone + merged address + coordinates, then continue to booking.
+  async function handleSaveAddress(data: AddressLocationResult) {
+    setSavingAddress(true);
+    setAddressError(null);
+    try {
+      await updateMyProfile({
+        phone: data.phone,
+        address: data.address,
+        latitude: data.latitude,
+        longitude: data.longitude,
+      });
+      await refreshProfile();
+      setShowAddressModal(false);
+      setShowBooking(true);
+      toast.success("Details saved successfully");
+    } catch (err) {
+      const msg = (err as Error).message || "Could not save your details";
+      setAddressError(msg);
+      toast.error(msg);
+    } finally {
+      setSavingAddress(false);
+    }
   }
 
   async function confirmBooking() {
@@ -119,42 +178,69 @@ export default function PatientDashboard() {
       setSelected(null);
       setShowBooking(false);
       await loadAppointments();
+      toast.success("Appointment booked successfully");
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message || "Could not book the appointment";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setBooking(false);
     }
   }
 
-  async function saveProfile() {
+  // Persist the current form. Called (debounced) automatically as the user edits.
+  async function autoSaveProfile(next: typeof form) {
+    // Don't push an empty name — the backend rejects it. Other fields can clear.
+    if (!next.name.trim()) return;
     setSavingProfile(true);
-    setProfileMsg(null);
+    setSavedTick(false);
     try {
       await updateMyProfile({
-        name: form.name,
-        phone: form.phone,
-        dateOfBirth: form.dateOfBirth || null,
-        address: form.address || null,
+        name: next.name,
+        phone: next.phone,
+        dateOfBirth: next.dateOfBirth || null,
+        address: next.address || null,
       });
       await refreshProfile();
-      setProfileMsg("Saved");
+      setSavedTick(true);
+      toast.success("Profile saved");
     } catch (err) {
-      setProfileMsg((err as Error).message);
+      toast.error((err as Error).message || "Could not save your profile");
     } finally {
       setSavingProfile(false);
     }
   }
 
+  // Update a field and schedule an auto-save (debounced) so changes persist and
+  // reflect without the user pressing a save button.
+  function handleFieldChange(key: keyof typeof form, value: string) {
+    dirtyRef.current = true;
+    setSavedTick(false);
+    setForm((f) => {
+      const next = { ...f, [key]: value };
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => autoSaveProfile(next), 900);
+      return next;
+    });
+  }
+
+  // Flush any pending save on unmount.
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, []);
+
   async function onPhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingPhoto(true);
-    setProfileMsg(null);
     try {
       await uploadMyPhoto(await fileToDataUrl(file));
       await refreshProfile();
+      toast.success("Photo updated");
     } catch (err) {
-      setProfileMsg((err as Error).message);
+      toast.error((err as Error).message || "Could not upload the photo");
     } finally {
       setUploadingPhoto(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -163,6 +249,15 @@ export default function PatientDashboard() {
 
   return (
     <div className="flex-1 w-full bg-background px-6 md:px-10 py-10 max-w-7xl mx-auto flex flex-col gap-8">
+      <AddressLocationModal
+        open={showAddressModal}
+        saving={savingAddress}
+        error={addressError}
+        initialPhone={phoneOnFile}
+        onClose={() => setShowAddressModal(false)}
+        onSave={handleSaveAddress}
+      />
+
       {/* Welcome header */}
       <section className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
         <div>
@@ -176,7 +271,7 @@ export default function PatientDashboard() {
           </p>
         </div>
         <button
-          onClick={() => setShowBooking((s) => !s)}
+          onClick={handleBookClick}
           className="group flex items-center gap-2 bg-primary-container text-on-primary px-6 py-3.5 rounded-xl font-bold hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
           <span className="material-symbols-outlined text-lg">
@@ -336,22 +431,28 @@ export default function PatientDashboard() {
             </div>
 
             <div className="space-y-4">
-              <SnapField label="Full Name" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} />
-              <SnapField label="Phone" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
+              <SnapField label="Full Name" value={form.name} onChange={(v) => handleFieldChange("name", v)} />
+              <SnapField label="Phone" value={form.phone} onChange={(v) => handleFieldChange("phone", v)} />
               <div className="grid grid-cols-2 gap-4">
-                <SnapField label="Date of Birth" type="date" value={form.dateOfBirth} onChange={(v) => setForm((f) => ({ ...f, dateOfBirth: v }))} />
-                <SnapField label="Address" value={form.address} onChange={(v) => setForm((f) => ({ ...f, address: v }))} />
+                <SnapField label="Date of Birth" type="date" value={form.dateOfBirth} onChange={(v) => handleFieldChange("dateOfBirth", v)} />
+                <SnapField label="Address" value={form.address} onChange={(v) => handleFieldChange("address", v)} />
               </div>
-              {profileMsg && (
-                <p className={`text-xs ${profileMsg === "Saved" ? "text-primary" : "text-error"}`}>{profileMsg}</p>
-              )}
-              <button
-                onClick={saveProfile}
-                disabled={savingProfile}
-                className="w-full mt-2 bg-secondary text-on-secondary py-3 rounded-lg font-bold text-sm shadow-sm hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
-              >
-                {savingProfile ? "Saving…" : "Update Info"}
-              </button>
+              {/* Auto-save status — changes persist as you type, no button needed. */}
+              <p className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+                {savingProfile ? (
+                  <>
+                    <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                    Saving…
+                  </>
+                ) : savedTick ? (
+                  <>
+                    <span className="material-symbols-outlined text-sm text-primary">check_circle</span>
+                    All changes saved
+                  </>
+                ) : (
+                  "Changes save automatically"
+                )}
+              </p>
             </div>
           </div>
         </div>
