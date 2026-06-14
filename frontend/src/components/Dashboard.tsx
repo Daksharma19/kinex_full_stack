@@ -2,17 +2,22 @@ import { useAuth } from "../context/AuthContext";
 import AdminDashboard from "./AdminDashboard";
 import DoctorDashboard from "./DoctorDashboard";
 import PatientDashboard from "./PatientDashboard";
+import DashboardSkeleton from "./DashboardSkeleton";
 
 /**
  * Protected landing page. Only reachable through <ProtectedRoute>, so a session
  * is guaranteed here. Renders the right console for the user's role.
  */
 export default function Dashboard() {
-  const { user, profile } = useAuth();
+  const { user, profile, profileLoading } = useAuth();
 
   if (profile?.role === "ADMIN") return <AdminDashboard />;
   if (profile?.role === "DOCTOR") return <DoctorDashboard />;
   if (profile?.role === "PATIENT") return <PatientDashboard />;
+
+  // Profile is still being fetched/provisioned — show a skeleton instead of
+  // briefly flashing the "no profile" message below.
+  if (profileLoading) return <DashboardSkeleton />;
 
   // Authenticated but no app profile yet (e.g. mid-onboarding).
   return (

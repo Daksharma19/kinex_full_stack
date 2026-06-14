@@ -25,6 +25,8 @@ interface AuthContextValue {
   profile: MeResponse["profile"];
   /** True until the initial session lookup resolves — gate redirects on this. */
   loading: boolean;
+  /** True while the backend profile is being fetched/provisioned for a session. */
+  profileLoading: boolean;
   signOut: () => Promise<void>;
   /** Re-fetch the backend profile (e.g. right after creating it). */
   refreshProfile: () => Promise<void>;
@@ -44,12 +46,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<MeResponse["profile"]>(null);
   const [loading, setLoading] = useState(true);
+  // Number of in-flight profile fetches. A counter (not a boolean) so that
+  // concurrent loads — e.g. React StrictMode double-invoking effects, or a
+  // getSession() and an onAuthStateChange firing together — don't let an early
+  // finisher clear the loading flag while another fetch is still running.
+  const [pendingProfileLoads, setPendingProfileLoads] = useState(0);
+  const profileLoading = pendingProfileLoads > 0;
 
   async function loadProfile(currentSession: Session | null) {
     if (!currentSession) {
       setProfile(null);
       return;
     }
+    setPendingProfileLoads((n) => n + 1);
     try {
       let { profile } = await getMe();
 
@@ -86,6 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Network/backend error — leave profile null; protected UI can retry.
       setProfile(null);
+    } finally {
+      setPendingProfileLoads((n) => n - 1);
     }
   }
 
@@ -114,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: session?.user ?? null,
     profile,
     loading,
+    profileLoading,
     signOut: async () => {
       await supabase.auth.signOut();
     },
