@@ -96,15 +96,37 @@ model Doctor {
   profile      Profile       @relation("DoctorProfile", fields: [profileId], references: [id], onDelete: Cascade)
   verifiedBy   Profile?      @relation("DoctorVerifier", fields: [verifiedById], references: [id])
   appointments Appointment[]
+  slots        TimeSlot[]
 
   @@index([status])
   @@map("doctors")
+}
+
+// A bookable 1-hour slot a doctor opens up. Doctors may only create slots for
+// the next 3 calendar days, excluding today. A slot is reserved (isBooked) the
+// moment a patient starts a booking, and freed again if that booking is
+// cancelled — so two patients can never grab the same hour.
+model TimeSlot {
+  id        String   @id @default(uuid())
+  doctorId  String   @map("doctor_id")
+  startsAt  DateTime @map("starts_at")
+  isBooked  Boolean  @default(false) @map("is_booked")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  doctor      Doctor       @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointment Appointment?
+
+  @@unique([doctorId, startsAt])
+  @@index([doctorId, startsAt])
+  @@map("time_slots")
 }
 
 model Appointment {
   id          String            @id @default(uuid())
   patientId   String            @map("patient_id")
   doctorId    String            @map("doctor_id")
+  slotId      String?           @unique @map("slot_id")
   mode        AppointmentMode
   scheduledAt DateTime          @map("scheduled_at")
   status      AppointmentStatus @default(PENDING)
@@ -112,8 +134,9 @@ model Appointment {
   createdAt   DateTime          @default(now()) @map("created_at")
   updatedAt   DateTime          @updatedAt @map("updated_at")
 
-  patient Patient  @relation(fields: [patientId], references: [id])
-  doctor  Doctor   @relation(fields: [doctorId], references: [id])
+  patient Patient   @relation(fields: [patientId], references: [id])
+  doctor  Doctor    @relation(fields: [doctorId], references: [id])
+  slot    TimeSlot? @relation(fields: [slotId], references: [id])
   payment Payment?
 
   @@index([patientId, scheduledAt(sort: Desc)])
@@ -125,6 +148,7 @@ model Payment {
   id               String        @id @default(uuid())
   appointmentId    String        @unique @map("appointment_id")
   amountPaise      BigInt        @map("amount_paise")
+  gatewayOrderId   String?       @map("gateway_order_id")
   gatewayPaymentId String?       @map("gateway_payment_id")
   status           PaymentStatus @default(PENDING)
   createdAt        DateTime      @default(now()) @map("created_at")

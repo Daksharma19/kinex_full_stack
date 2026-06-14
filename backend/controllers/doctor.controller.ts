@@ -179,6 +179,139 @@ export async function listVerifiedDoctors(_req: Request, res: Response) {
   }
 }
 
+// ---- Time slots ----
+
+// Start of "today" (server local time), midnight. Slots may be created only for
+// the 3 calendar days AFTER today (today excluded). The bookable window is
+// therefore [tomorrow 00:00, today + 4 days 00:00).
+function slotWindow() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const windowStart = new Date(start);
+  windowStart.setDate(windowStart.getDate() + 1); // tomorrow 00:00
+  const windowEnd = new Date(start);
+  windowEnd.setDate(windowEnd.getDate() + 4); // day after the 3rd day, 00:00
+  return { windowStart, windowEnd };
+}
+
+// A valid slot starts exactly on the hour, lies inside the 3-day window, and is
+// still in the future. Returns the normalized Date or null if invalid.
+function normalizeSlot(input: unknown): Date | null {
+  const d = new Date(input as string);
+  if (isNaN(d.getTime())) return null;
+  if (d.getMinutes() !== 0 || d.getSeconds() !== 0 || d.getMilliseconds() !== 0)
+    return null;
+  if (d.getTime() <= Date.now()) return null;
+  const { windowStart, windowEnd } = slotWindow();
+  if (d < windowStart || d >= windowEnd) return null;
+  return d;
+}
+
+/**
+ * DOCTOR-only: open one or more 1-hour slots. Accepts `{ startsAt }` for a
+ * single slot or `{ slots: [...] }` for many. Each must start on the hour and
+ * fall within the next 3 days (today excluded). Duplicates are skipped silently.
+ * Only VERIFIED doctors may publish slots.
+ */
+export async function createMySlots(req: Request, res: Response) {
+  try {
+    const profileId = req.profile!.id;
+    const doctor = await prisma.doctor.findUnique({ where: { profileId } });
+    if (!doctor) return res.status(404).json({ message: "Doctor profile not found" });
+    if (doctor.status !== "VERIFIED")
+      return res
+        .status(403)
+        .json({ message: "Only verified doctors can publish time slots" });
+
+    const raw = Array.isArray(req.body?.slots)
+      ? req.body.slots
+      : req.body?.startsAt != null
+        ? [req.body.startsAt]
+        : [];
+    if (raw.length === 0)
+      return res.status(400).json({ message: "Provide startsAt or a slots array" });
+
+    const valid: Date[] = [];
+    for (const r of raw) {
+      const d = normalizeSlot(r);
+      if (!d)
+        return res.status(400).json({
+          message:
+            "Each slot must start on the hour and fall within the next 3 days (excluding today)",
+        });
+      valid.push(d);
+    }
+
+    await prisma.timeSlot.createMany({
+      data: valid.map((startsAt) => ({ doctorId: doctor.id, startsAt })),
+      skipDuplicates: true,
+    });
+
+    const slots = await prisma.timeSlot.findMany({
+      where: { doctorId: doctor.id, startsAt: { gte: new Date() } },
+      orderBy: { startsAt: "asc" },
+    });
+    return res.status(201).json({ message: "Slots published", slots });
+  } catch (error) {
+    console.error("Error creating slots:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/** DOCTOR-only: list the signed-in doctor's own upcoming slots. */
+export async function listMySlots(req: Request, res: Response) {
+  try {
+    const profileId = req.profile!.id;
+    const doctor = await prisma.doctor.findUnique({ where: { profileId } });
+    if (!doctor) return res.status(404).json({ message: "Doctor profile not found" });
+
+    const slots = await prisma.timeSlot.findMany({
+      where: { doctorId: doctor.id, startsAt: { gte: new Date() } },
+      orderBy: { startsAt: "asc" },
+    });
+    return res.status(200).json({ slots });
+  } catch (error) {
+    console.error("Error listing slots:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/** DOCTOR-only: delete one of the doctor's own slots (only if not yet booked). */
+export async function deleteMySlot(req: Request, res: Response) {
+  try {
+    const profileId = req.profile!.id;
+    const doctor = await prisma.doctor.findUnique({ where: { profileId } });
+    if (!doctor) return res.status(404).json({ message: "Doctor profile not found" });
+
+    const slot = await prisma.timeSlot.findUnique({ where: { id: req.params.id as string } });
+    if (!slot || slot.doctorId !== doctor.id)
+      return res.status(404).json({ message: "Slot not found" });
+    if (slot.isBooked)
+      return res.status(409).json({ message: "Cannot remove a booked slot" });
+
+    await prisma.timeSlot.delete({ where: { id: slot.id } });
+    return res.status(200).json({ message: "Slot removed" });
+  } catch (error) {
+    console.error("Error deleting slot:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/** Public: list a doctor's available (unbooked, future) slots for booking. */
+export async function listDoctorSlots(req: Request, res: Response) {
+  try {
+    const doctorId = req.params.id as string;
+    const slots = await prisma.timeSlot.findMany({
+      where: { doctorId, isBooked: false, startsAt: { gte: new Date() } },
+      orderBy: { startsAt: "asc" },
+    });
+    return res.status(200).json({ slots });
+  } catch (error) {
+    console.error("Error listing doctor slots:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 export async function getDoctorById(req: Request, res: Response) {
   try {
     const doctorId = req.params.id as string;

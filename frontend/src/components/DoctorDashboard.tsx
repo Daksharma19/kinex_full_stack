@@ -4,8 +4,11 @@ import {
   updateAppointmentStatus,
   updateDoctorProfile,
   uploadDoctorPhoto,
+  listMySlots,
+  createMySlots,
+  deleteMySlot,
   type Appointment,
-  type AppointmentStatus,
+  type TimeSlot,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -95,6 +98,10 @@ export default function DoctorDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
 
+  // Availability (time slots).
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
+  const [slotBusy, setSlotBusy] = useState<string | null>(null);
+
   // Profile editing + photo upload state.
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
@@ -156,6 +163,17 @@ export default function DoctorDashboard() {
     }
   }
 
+  const isVerified = doctorStatus === "VERIFIED";
+
+  const loadSlots = useCallback(async () => {
+    try {
+      const { slots } = await listMySlots();
+      setSlots(slots);
+    } catch {
+      /* non-fatal — availability is secondary to the queue */
+    }
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -173,7 +191,37 @@ export default function DoctorDashboard() {
     load();
   }, [load]);
 
-  async function setStatus(id: string, status: Exclude<AppointmentStatus, "PENDING">) {
+  useEffect(() => {
+    if (isVerified) loadSlots();
+  }, [isVerified, loadSlots]);
+
+  // Toggle a 1-hour slot at a given start time: create it if absent, delete it
+  // if present and unbooked. Booked slots are locked.
+  async function toggleSlot(startsAt: Date) {
+    const iso = startsAt.toISOString();
+    const existing = slots.find((s) => new Date(s.startsAt).getTime() === startsAt.getTime());
+    setSlotBusy(iso);
+    try {
+      if (existing) {
+        if (existing.isBooked) {
+          toast.error("That slot is already booked");
+          return;
+        }
+        await deleteMySlot(existing.id);
+        toast.success("Slot removed");
+      } else {
+        await createMySlots([iso]);
+        toast.success("Slot added");
+      }
+      await loadSlots();
+    } catch (err) {
+      toast.error((err as Error).message || "Could not update availability");
+    } finally {
+      setSlotBusy(null);
+    }
+  }
+
+  async function setStatus(id: string, status: "COMPLETED" | "CANCELLED") {
     setActingId(id);
     setError(null);
     try {
@@ -198,10 +246,14 @@ export default function DoctorDashboard() {
     const upcoming = sorted.filter(
       (a) => new Date(a.scheduledAt) > now && !isSameDay(new Date(a.scheduledAt), now)
     );
+    // Payments collected = appointments with a VERIFIED (paid) payment.
+    const paid = appointments.filter((a) => a.payment?.status === "VERIFIED");
     const stats = {
       total: appointments.length,
       pending: appointments.filter((a) => a.status === "PENDING").length,
       completed: appointments.filter((a) => a.status === "COMPLETED").length,
+      paymentsCount: paid.length,
+      revenue: paid.reduce((sum, a) => sum + (a.payment?.amount ?? 0), 0),
     };
     return { today, upcoming, stats };
   }, [appointments]);
@@ -242,11 +294,23 @@ export default function DoctorDashboard() {
       {error && <p className="text-sm text-error">{error}</p>}
 
       {/* Metric cards (bento) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         <MetricCard icon="event" iconClass="text-primary" label="Total Appointments" value={stats.total} />
         <MetricCard icon="pending_actions" iconClass="text-tertiary" label="Awaiting Confirmation" value={stats.pending} />
         <MetricCard icon="task_alt" iconClass="text-secondary" label="Completed" value={stats.completed} />
+        <MetricCard
+          icon="payments"
+          iconClass="text-primary"
+          label="Payments Collected"
+          value={`₹${stats.revenue.toLocaleString("en-IN")}`}
+          sub={`${stats.paymentsCount} payment${stats.paymentsCount === 1 ? "" : "s"}`}
+        />
       </div>
+
+      {/* Availability — open 1-hour slots for the next 3 days (today excluded) */}
+      {isVerified && (
+        <AvailabilityManager slots={slots} busy={slotBusy} onToggle={toggleSlot} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: queue + upcoming */}
@@ -335,6 +399,8 @@ export default function DoctorDashboard() {
                         <div>
                           <h4 className="font-bold text-on-surface">{a.patient.profile.name}</h4>
                           <p className="text-sm text-on-surface-variant">
+                            {d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+                            {" · "}
                             {d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             {a.notes ? ` · “${a.notes}”` : ""}
                           </p>
@@ -484,22 +550,110 @@ export default function DoctorDashboard() {
   );
 }
 
+// Bookable hours offered each day (start times). Slots are 1 hour; 09:00–17:00
+// means the last slot starts at 17:00 and ends at 18:00.
+const SLOT_HOURS = [9, 10, 11, 12, 13, 14, 15, 16, 17];
+
+// The 3 calendar days a doctor may open slots for: tomorrow, +2, +3 (today is
+// intentionally excluded so patients always book at least a day ahead).
+function upcomingDays(): Date[] {
+  const base = new Date();
+  base.setHours(0, 0, 0, 0);
+  return [1, 2, 3].map((offset) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + offset);
+    return d;
+  });
+}
+
+function AvailabilityManager({
+  slots,
+  busy,
+  onToggle,
+}: {
+  slots: TimeSlot[];
+  busy: string | null;
+  onToggle: (startsAt: Date) => void;
+}) {
+  const days = upcomingDays();
+  const now = Date.now();
+  // Index existing slots by their exact start-time for quick lookup.
+  const byTime = new Map(slots.map((s) => [new Date(s.startsAt).getTime(), s]));
+
+  return (
+    <section className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm">
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-xl font-bold text-on-surface flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary-container">schedule</span>
+          Manage Availability
+        </h2>
+      </div>
+      <p className="text-sm text-on-surface-variant mb-5">
+        Tap an hour to open or close a 1-hour slot for the next 3 days. Booked
+        slots are locked.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {days.map((day) => (
+          <div key={day.toISOString()} className="rounded-xl border border-outline-variant/10 p-4">
+            <p className="text-xs font-bold text-on-surface uppercase tracking-wide mb-3">
+              {day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SLOT_HOURS.map((h) => {
+                const start = new Date(day);
+                start.setHours(h, 0, 0, 0);
+                const existing = byTime.get(start.getTime());
+                const past = start.getTime() <= now;
+                const isBusy = busy === start.toISOString();
+                const booked = existing?.isBooked;
+                const open = Boolean(existing) && !booked;
+                return (
+                  <button
+                    key={h}
+                    type="button"
+                    disabled={past || booked || isBusy}
+                    onClick={() => onToggle(start)}
+                    title={booked ? "Booked" : open ? "Open — tap to remove" : "Tap to open"}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors disabled:opacity-40 ${
+                      booked
+                        ? "bg-secondary-container text-primary border-secondary-container cursor-not-allowed"
+                        : open
+                          ? "bg-primary text-on-primary border-primary"
+                          : "bg-surface-container-low text-on-surface border-outline-variant/30 hover:border-primary"
+                    }`}
+                  >
+                    {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {booked && <span className="material-symbols-outlined text-[14px] align-middle ml-1">lock</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function MetricCard({
   icon,
   iconClass,
   label,
   value,
+  sub,
 }: {
   icon: string;
   iconClass: string;
   label: string;
-  value: number;
+  value: number | string;
+  sub?: string;
 }) {
   return (
     <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 flex flex-col items-center text-center">
       <span className={`material-symbols-outlined text-3xl mb-2 ${iconClass}`}>{icon}</span>
       <h3 className="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-1">{label}</h3>
       <p className="text-3xl font-black text-on-surface">{value}</p>
+      {sub && <p className="text-xs font-bold text-primary mt-1">{sub}</p>}
     </div>
   );
 }
@@ -511,40 +665,26 @@ function RowActions({
 }: {
   appt: Appointment;
   busy: boolean;
-  onSet: (id: string, status: Exclude<AppointmentStatus, "PENDING">) => void;
+  onSet: (id: string, status: "COMPLETED" | "CANCELLED") => void;
 }) {
-  if (appt.status === "COMPLETED" || appt.status === "CANCELLED") {
-    return <span className="text-xs text-on-surface-variant">—</span>;
-  }
-  return (
-    <div className="flex gap-3 whitespace-nowrap">
-      {appt.status === "PENDING" && (
-        <button
-          onClick={() => onSet(appt.id, "CONFIRMED")}
-          disabled={busy}
-          className="text-primary text-sm font-bold hover:underline disabled:opacity-50"
-        >
-          Confirm
-        </button>
-      )}
-      {appt.status === "CONFIRMED" && (
-        <button
-          onClick={() => onSet(appt.id, "COMPLETED")}
-          disabled={busy}
-          className="text-primary text-sm font-bold hover:underline disabled:opacity-50"
-        >
-          Complete
-        </button>
-      )}
+  // Pending appointments are awaiting the patient's payment; doctors act only
+  // once an appointment is CONFIRMED. Completing is the doctor's only action —
+  // cancellation is admin-only.
+  if (appt.status === "CONFIRMED") {
+    return (
       <button
-        onClick={() => onSet(appt.id, "CANCELLED")}
+        onClick={() => onSet(appt.id, "COMPLETED")}
         disabled={busy}
-        className="text-error text-sm font-bold hover:underline disabled:opacity-50"
+        className="text-primary text-sm font-bold hover:underline disabled:opacity-50"
       >
-        Cancel
+        Mark completed
       </button>
-    </div>
-  );
+    );
+  }
+  if (appt.status === "PENDING") {
+    return <span className="text-xs text-on-surface-variant">Awaiting payment</span>;
+  }
+  return <span className="text-xs text-on-surface-variant">—</span>;
 }
 
 function Field({ label, value }: { label: string; value: string }) {

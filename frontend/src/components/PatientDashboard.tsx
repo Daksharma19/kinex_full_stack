@@ -3,12 +3,17 @@ import {
   listVerifiedDoctors,
   listMyAppointments,
   bookAppointment,
+  verifyAppointmentPayment,
+  releaseAppointment,
+  listDoctorSlots,
   updateMyProfile,
   uploadMyPhoto,
   type VerifiedDoctor,
   type Appointment,
   type AppointmentMode,
+  type TimeSlot,
 } from "../lib/api";
+import { openRazorpayCheckout } from "../lib/razorpay";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Button } from "@/components/ui/button";
@@ -31,6 +36,22 @@ function fileToDataUrl(file: File): Promise<string> {
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+}
+
+// Group available slots by their calendar day for a tidy "pick a time" UI.
+function groupSlotsByDay(slots: TimeSlot[]): [string, TimeSlot[]][] {
+  const map = new Map<string, TimeSlot[]>();
+  for (const s of slots) {
+    const label = new Date(s.startsAt).toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+    const arr = map.get(label) ?? [];
+    arr.push(s);
+    map.set(label, arr);
+  }
+  return Array.from(map.entries());
 }
 
 /**
@@ -64,9 +85,12 @@ export default function PatientDashboard() {
   const [showBooking, setShowBooking] = useState(false);
   const [selected, setSelected] = useState<VerifiedDoctor | null>(null);
   const [mode, setMode] = useState<AppointmentMode>("ONLINE");
-  const [scheduledAt, setScheduledAt] = useState("");
   const [notes, setNotes] = useState("");
   const [booking, setBooking] = useState(false);
+  // Slots for the selected doctor.
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
 
   // Profile snapshot
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,12 +137,22 @@ export default function PatientDashboard() {
     });
   }, [profile, patient]);
 
-  function openBooking(d: VerifiedDoctor) {
+  async function openBooking(d: VerifiedDoctor) {
     setSelected(d);
     setMode("ONLINE");
-    setScheduledAt("");
     setNotes("");
+    setSelectedSlotId(null);
+    setSlots([]);
     setError(null);
+    setSlotsLoading(true);
+    try {
+      const { slots } = await listDoctorSlots(d.id);
+      setSlots(slots);
+    } catch (err) {
+      setError((err as Error).message || "Could not load available slots");
+    } finally {
+      setSlotsLoading(false);
+    }
   }
 
   // Entry point for the "Book New Appointment" button: collect missing contact
@@ -162,27 +196,70 @@ export default function PatientDashboard() {
 
   async function confirmBooking() {
     if (!selected) return;
-    if (!scheduledAt) {
-      setError("Pick a date and time.");
+    if (!selectedSlotId) {
+      setError("Pick an available time slot.");
+      return;
+    }
+    if (selected.consultationFee == null || selected.consultationFee <= 0) {
+      setError("This doctor has not set a consultation fee yet.");
       return;
     }
     setBooking(true);
     setError(null);
+    // Track the pending appointment so we can release its slot if payment is
+    // abandoned (popup dismissed) or fails.
+    let createdId: string | null = null;
     try {
-      await bookAppointment({
-        doctorId: selected.id,
+      // 1. Start the booking — creates a PENDING appointment + Razorpay order.
+      const { appointment, payment } = await bookAppointment({
+        slotId: selectedSlotId,
         mode,
-        scheduledAt: new Date(scheduledAt).toISOString(),
         notes: notes || undefined,
       });
+      createdId = appointment.id;
+
+      // 2. Open Razorpay checkout and wait for the success payload.
+      const result = await openRazorpayCheckout(payment, {
+        name: "Kinex Healthcare",
+        description: `Consultation with Dr. ${selected.profile.name}`,
+        prefill: {
+          name: profile?.name || undefined,
+          email: profile?.email || undefined,
+          contact: phoneOnFile || undefined,
+        },
+      });
+
+      // 3. Verify the payment — auto-confirms the appointment + locks the slot.
+      await verifyAppointmentPayment(appointment.id, result);
+      createdId = null; // confirmed — nothing to release.
+
       setSelected(null);
       setShowBooking(false);
       await loadAppointments();
-      toast.success("Appointment booked successfully");
+      toast.success("Payment successful — appointment confirmed");
     } catch (err) {
-      const msg = (err as Error).message || "Could not book the appointment";
+      const msg = (err as Error).message || "Could not complete the booking";
       setError(msg);
       toast.error(msg);
+      // Release the unpaid hold (best effort) so the slot frees up. Harmless if
+      // the server already cancelled it on a failed verification.
+      if (createdId) {
+        try {
+          await releaseAppointment(createdId);
+        } catch {
+          /* ignore */
+        }
+      }
+      // Refresh slots so the freed slot reappears.
+      if (selected) {
+        try {
+          const { slots } = await listDoctorSlots(selected.id);
+          setSlots(slots);
+          setSelectedSlotId(null);
+        } catch {
+          /* ignore */
+        }
+      }
     } finally {
       setBooking(false);
     }
@@ -333,16 +410,58 @@ export default function PatientDashboard() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="when">Date &amp; time</Label>
-                    <Input id="when" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+                    <Label>Available time slots</Label>
+                    {slotsLoading ? (
+                      <p className="text-sm text-on-surface-variant">Loading slots…</p>
+                    ) : slots.length === 0 ? (
+                      <p className="text-sm text-on-surface-variant">
+                        This doctor has no open slots right now. Please check back later.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {groupSlotsByDay(slots).map(([day, daySlots]) => (
+                          <div key={day}>
+                            <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide mb-1.5">
+                              {day}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {daySlots.map((s) => {
+                                const isSel = s.id === selectedSlotId;
+                                return (
+                                  <button
+                                    key={s.id}
+                                    type="button"
+                                    onClick={() => setSelectedSlotId(s.id)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                                      isSel
+                                        ? "bg-primary text-on-primary border-primary"
+                                        : "bg-surface-container-lowest border-outline-variant/30 text-on-surface hover:border-primary"
+                                    }`}
+                                  >
+                                    {new Date(s.startsAt).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="notes">Notes (optional)</Label>
                     <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
                   </div>
                   <div className="flex gap-3">
-                    <Button onClick={confirmBooking} disabled={booking}>
-                      {booking ? "Booking…" : "Confirm booking"}
+                    <Button onClick={confirmBooking} disabled={booking || !selectedSlotId}>
+                      {booking
+                        ? "Processing…"
+                        : selected.consultationFee != null
+                          ? `Pay ₹${selected.consultationFee} & Confirm`
+                          : "Confirm booking"}
                     </Button>
                     <Button variant="secondary" onClick={() => setSelected(null)} disabled={booking}>Cancel</Button>
                   </div>
