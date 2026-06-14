@@ -7,9 +7,9 @@ const STATS = [
 
 export default function Stats() {
   return (
-    <section className="relative z-20 -mt-12 md:-mt-14 px-6 md:px-8">
-      <div className="max-w-7xl mx-auto bg-surface-container-lowest rounded-xl shadow-2xl p-8 md:p-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+    <section className="relative z-20 mt-8 md:-mt-14 px-6 md:px-8">
+      <div className="max-w-7xl mx-auto bg-surface-container-lowest rounded-xl shadow-2xl p-6 md:p-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
           {STATS.map((s) => (
             <div
               key={s.label}

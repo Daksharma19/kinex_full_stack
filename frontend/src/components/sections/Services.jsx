@@ -1,10 +1,10 @@
 export default function Services() {
   return (
-    <section className="py-20 md:py-28 px-6 md:px-8">
+    <section className="py-14 md:py-28 px-6 md:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 md:mb-16 gap-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-16 gap-4 md:gap-8">
           <div className="max-w-xl">
-            <h2 className="text-4xl font-headline font-bold tracking-tight text-primary mb-6">
+            <h2 className="text-3xl md:text-4xl font-headline font-bold tracking-tight text-primary mb-4 md:mb-6">
               Comprehensive Clinical Excellence
             </h2>
             <p className="text-on-surface-variant text-lg leading-relaxed">
@@ -20,10 +20,10 @@ export default function Services() {
             </span>
           </a>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-10">
           {/* Pain Relief */}
-          <div className="bento-card bg-surface-container-low p-10 rounded-xl">
-            <div className="w-14 h-14 bg-secondary-container rounded-lg flex items-center justify-center mb-8">
+          <div className="bento-card bg-surface-container-low p-6 md:p-10 rounded-xl">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-secondary-container rounded-lg flex items-center justify-center mb-5 md:mb-8">
               <span className="material-symbols-outlined text-primary text-3xl">
                 medical_services
               </span>
@@ -44,8 +44,8 @@ export default function Services() {
           </div>
 
           {/* Muscle Recovery (highlighted) */}
-          <div className="bento-card bg-primary text-white p-10 rounded-xl">
-            <div className="w-14 h-14 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center mb-8">
+          <div className="bento-card bg-primary text-white p-6 md:p-10 rounded-xl">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center mb-5 md:mb-8">
               <span className="material-symbols-outlined text-primary-fixed text-3xl">
                 fitness_center
               </span>
@@ -68,8 +68,8 @@ export default function Services() {
           </div>
 
           {/* Cellular Healing */}
-          <div className="bento-card bg-surface-container-low p-10 rounded-xl">
-            <div className="w-14 h-14 bg-tertiary-fixed rounded-lg flex items-center justify-center mb-8">
+          <div className="bento-card bg-surface-container-low p-6 md:p-10 rounded-xl">
+            <div className="w-12 h-12 md:w-14 md:h-14 bg-tertiary-fixed rounded-lg flex items-center justify-center mb-5 md:mb-8">
               <span className="material-symbols-outlined text-tertiary text-3xl">
                 vital_signs
               </span>

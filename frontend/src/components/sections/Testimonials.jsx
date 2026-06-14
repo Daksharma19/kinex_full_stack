@@ -4,42 +4,54 @@ const TESTIMONIALS = [
       "Kinex completely transformed my recovery. The neuromuscular therapy erased years of chronic back pain in just weeks.",
     name: "Ananya Sharma",
     role: "Marathon Runner",
+    rating: 5,
   },
   {
     quote:
       "The private suites and calm environment made every visit feel restorative. World-class care with genuine warmth.",
     name: "Rohan Mehta",
     role: "Post-Op Patient",
+    rating: 4,
   },
   {
     quote:
       "Dr. Prajapati's expertise is unmatched. My mobility has improved beyond what I thought was possible at my age.",
     name: "Sunita Verma",
     role: "Geriatric Rehab",
+    rating: 5,
   },
   {
     quote:
       "Reduced wait times and a team that truly listens. Kinex respects both my health and my time.",
     name: "Arjun Nair",
     role: "Sports Injury",
+    rating: 4,
   },
   {
     quote:
       "The cellular healing program accelerated my recovery dramatically. I felt supported at every single step.",
     name: "Priya Iyer",
     role: "Wellness Member",
+    rating: 5,
   },
 ];
 
-function Card({ quote, name, role }) {
+function Card({ quote, name, role, rating = 5 }) {
   return (
     <div className="bento-card flex-shrink-0 w-[360px] bg-surface-container-lowest p-8 rounded-xl shadow-sm mx-4">
       <div className="flex gap-1 text-tertiary-fixed-dim mb-5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <span key={i} className="material-symbols-outlined text-xl">
-            star
-          </span>
-        ))}
+        {Array.from({ length: 5 }).map((_, i) => {
+          const filled = i < rating;
+          return (
+            <span
+              key={i}
+              className="material-symbols-outlined text-xl"
+              style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+            >
+              star
+            </span>
+          );
+        })}
       </div>
       <p className="text-on-surface-variant leading-relaxed mb-8">“{quote}”</p>
       <div className="flex items-center gap-4">
