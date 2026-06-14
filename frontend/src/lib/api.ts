@@ -50,7 +50,12 @@ export interface MeResponse {
     role: "PATIENT" | "DOCTOR" | "ADMIN";
     phone?: string | null;
     photoUrl?: string | null;
-    patient?: { dateOfBirth?: string | null; address?: string | null } | null;
+    patient?: {
+      dateOfBirth?: string | null;
+      address?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    } | null;
     doctor?: unknown;
   } | null;
 }
@@ -61,6 +66,8 @@ export function updateMyProfile(input: {
   phone?: string;
   dateOfBirth?: string | null;
   address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }) {
   return apiFetch<{ message: string }>("/auth/me", {
     method: "PATCH",
@@ -251,7 +258,12 @@ export interface Appointment {
   scheduledAt: string;
   status: AppointmentStatus;
   notes: string | null;
-  patient: { profile: { name: string; email: string } };
+  patient: {
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    profile: { name: string; email: string; phone?: string | null };
+  };
   doctor: { profile: { name: string; email: string } };
 }
 

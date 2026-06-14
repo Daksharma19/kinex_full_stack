@@ -134,7 +134,7 @@ const AVATAR_BUCKET = "avatars";
 export async function updateMyProfile(req: Request, res: Response) {
   try {
     const caller = req.profile!;
-    const { name, phone, dateOfBirth, address } = req.body;
+    const { name, phone, dateOfBirth, address, latitude, longitude } = req.body;
 
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ message: "name cannot be empty" });
@@ -144,13 +144,27 @@ export async function updateMyProfile(req: Request, res: Response) {
     if (name !== undefined) data.name = String(name).trim();
     if (phone !== undefined) data.phone = phone || null;
 
-    if (caller.role === "PATIENT" && (dateOfBirth !== undefined || address !== undefined)) {
+    const patientFieldsTouched =
+      dateOfBirth !== undefined ||
+      address !== undefined ||
+      latitude !== undefined ||
+      longitude !== undefined;
+
+    if (caller.role === "PATIENT" && patientFieldsTouched) {
       data.patient = {
         update: {
           ...(dateOfBirth !== undefined
             ? { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null }
             : {}),
           ...(address !== undefined ? { address: address || null } : {}),
+          // Coordinates: accept a number, or clear with null. Ignore anything
+          // that isn't a finite number so a bad payload can't corrupt the row.
+          ...(latitude !== undefined
+            ? { latitude: Number.isFinite(latitude) ? latitude : null }
+            : {}),
+          ...(longitude !== undefined
+            ? { longitude: Number.isFinite(longitude) ? longitude : null }
+            : {}),
         },
       };
     }

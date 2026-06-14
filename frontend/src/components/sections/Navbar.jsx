@@ -35,6 +35,21 @@ function avatarInitial(profile, user) {
   return source.trim().charAt(0).toUpperCase();
 }
 
+// Shared avatar visual: the uploaded profile photo when present, else the initial.
+function AvatarContent({ profile, user }) {
+  const photoUrl = profile?.photoUrl ?? null;
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt="Profile"
+        className="h-full w-full rounded-full object-cover"
+      />
+    );
+  }
+  return avatarInitial(profile, user);
+}
+
 // Circular avatar that expands a dropdown with a greeting + Dashboard / Log Out.
 function UserMenu({ profile, user, onLogout }) {
   const [open, setOpen] = useState(false);
@@ -65,9 +80,9 @@ function UserMenu({ profile, user, onLogout }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-container text-on-primary font-bold shadow-sm hover:brightness-110 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-primary-container text-on-primary font-bold shadow-sm hover:brightness-110 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-primary/40"
       >
-        {avatarInitial(profile, user)}
+        <AvatarContent profile={profile} user={user} />
       </button>
 
       {open && (
@@ -206,8 +221,8 @@ export default function Navbar() {
             {loading ? null : session ? (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-on-primary font-bold shrink-0">
-                    {avatarInitial(profile, user)}
+                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary-container text-on-primary font-bold shrink-0">
+                    <AvatarContent profile={profile} user={user} />
                   </div>
                   <div className="min-w-0">
                     <p className="font-headline font-bold text-on-surface truncate">
