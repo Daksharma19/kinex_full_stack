@@ -75,6 +75,29 @@ Fetch a single doctor's public details by doctor profile id. Includes the linked
 - **Params:** `id` — doctor profile id (`doctors.id`)
 - **Returns:** `200` — `{ doctor }` · `404` if not found
 
+### `GET /api/v1/doctor/:id/slots`
+List a doctor's **available** (unbooked, future) 1-hour slots. Patients pick from
+these to book.
+- **Auth:** Public
+- **Returns:** `200` — `{ slots }`
+
+### `GET /api/v1/doctor/me/slots`
+List the signed-in doctor's own upcoming slots (booked and free).
+- **Auth:** Bearer Supabase token — `DOCTOR` only
+- **Returns:** `200` — `{ slots }`
+
+### `POST /api/v1/doctor/me/slots`
+Publish one or more 1-hour slots. Each start time must be **on the hour** and fall
+within the **next 3 days (today excluded)**. Duplicates are skipped.
+- **Auth:** Bearer Supabase token — **VERIFIED** `DOCTOR` only
+- **Body:** `{ slots: string[] }` (ISO start times) or `{ startsAt }`
+- **Returns:** `201` — `{ message, slots }` · `403` if not verified
+
+### `DELETE /api/v1/doctor/me/slots/:id`
+Remove one of the doctor's own slots. Only allowed if the slot is not yet booked.
+- **Auth:** Bearer Supabase token — `DOCTOR` only
+- **Returns:** `200` — `{ message }` · `409` if the slot is booked
+
 ---
 
 ## Admin — `/api/v1/admin`
@@ -106,11 +129,22 @@ auth user (email pre-confirmed), then creates a matching `Profile` (role `ADMIN`
 ## Appointments — `/api/v1/appointment`
 
 ### `POST /api/v1/appointment`
-Book an appointment with a verified doctor. The patient identity is taken from the
-token, not the body. Rejects unverified doctors and past dates.
+Start a booking against an **available slot**. Atomically reserves the slot, creates
+a `PENDING` appointment + `PENDING` payment, and opens a **Razorpay order**. The
+appointment is only confirmed once payment is verified. The doctor must have a
+consultation fee set.
 - **Auth:** Bearer Supabase token — `PATIENT` only
-- **Body:** `{ doctorId, mode: "ONLINE" | "HOME_VISIT", scheduledAt, notes? }`
-- **Returns:** `200` — `{ message, appointment }`
+- **Body:** `{ slotId, mode: "ONLINE" | "HOME_VISIT", notes? }`
+- **Returns:** `201` — `{ message, appointment, payment: { orderId, amount, currency, keyId } }`
+  · `409` if the slot was just taken · `503` if Razorpay is not configured
+
+### `POST /api/v1/appointment/:id/payment/verify`
+Verify the Razorpay payment for an appointment. A valid signature marks the payment
+`VERIFIED` and auto-**confirms** the appointment (slot stays locked). An invalid
+signature marks the payment `FAILED` and frees the slot.
+- **Auth:** Bearer Supabase token — owning `PATIENT` only
+- **Body:** `{ razorpay_order_id, razorpay_payment_id, razorpay_signature }`
+- **Returns:** `200` — `{ message, appointment }` · `400` if verification fails
 
 ### `GET /api/v1/appointment`
 List the caller's own appointments. A patient sees their bookings, a doctor sees
@@ -126,12 +160,13 @@ admin may view it.
 - **Returns:** `200` — `{ appointment }` · `403` if not a participant · `404` if not found
 
 ### `PATCH /api/v1/appointment/:id/status`
-Update an appointment's status. Only the doctor on the appointment or an admin can
-change it.
-- **Auth:** Bearer Supabase token — owning `DOCTOR` or `ADMIN`
-- **Params:** `id` — appointment id
-- **Body:** `{ status: "CONFIRMED" | "COMPLETED" | "CANCELLED" }`
-- **Returns:** `200` — `{ message, appointment }`
+Update an appointment's status, enforcing the workflow:
+- `CONFIRMED` is **automatic** on payment success — it cannot be set here (`400`).
+- `COMPLETED` — **only the owning `DOCTOR`**, and only from `CONFIRMED`.
+- `CANCELLED` — **`ADMIN` only**. Frees the slot and marks a paid consultation `REFUNDED`.
+- **Auth:** Bearer Supabase token — owning `DOCTOR` (complete) or `ADMIN` (cancel)
+- **Body:** `{ status: "COMPLETED" | "CANCELLED" }`
+- **Returns:** `200` — `{ message, appointment }` · `403` wrong role · `409` invalid transition
 
 ---
 
@@ -144,4 +179,8 @@ change it.
   Supabase on the frontend).
 - **`GET /api/v1/doctor`** — public list of bookable (VERIFIED) doctors, each with
   `profile` (name/email/phone). Patients pick from this to book.
-- **Pending / not yet built:** payments.
+- **Booking + payments:** patients book from a doctor's published 1-hour slots; the
+  slot is reserved, paid via **Razorpay**, and the appointment auto-confirms on a
+  verified payment. Requires `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` (see `.env.example`).
+- **Status lifecycle:** `PENDING` → `CONFIRMED` (on payment) → `COMPLETED` (doctor) ·
+  `CANCELLED` (admin) from any non-final state.

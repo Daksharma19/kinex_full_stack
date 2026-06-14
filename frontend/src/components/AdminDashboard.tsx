@@ -5,11 +5,16 @@ import {
   adminListUsers,
   adminPromoteToAdmin,
   adminDeleteUser,
+  listMyAppointments,
+  updateAppointmentStatus,
+  adminDeleteAppointment,
   type DoctorApplication,
   type DoctorStatus,
   type UserRow,
+  type Appointment,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import StatusBadge from "./StatusBadge";
 
 const STATUS_TABS: DoctorStatus[] = ["PENDING", "VERIFIED", "REJECTED"];
 
@@ -59,6 +64,9 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<DoctorStatus>("PENDING");
   const [selected, setSelected] = useState<DoctorApplication | null>(null);
 
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loadingAppts, setLoadingAppts] = useState(true);
+
   const [loadingApps, setLoadingApps] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +97,18 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const loadAppointments = useCallback(async () => {
+    setLoadingAppts(true);
+    try {
+      const { appointments } = await listMyAppointments();
+      setAppointments(appointments);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoadingAppts(false);
+    }
+  }, []);
+
   const loadPending = useCallback(async () => {
     try {
       const { doctors } = await adminListDoctors("PENDING");
@@ -106,7 +126,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadUsers();
     loadPending();
-  }, [loadUsers, loadPending]);
+    loadAppointments();
+  }, [loadUsers, loadPending, loadAppointments]);
 
   const metrics = useMemo(
     () => ({
@@ -163,10 +184,50 @@ export default function AdminDashboard() {
     }
   }
 
+  async function cancelAppointment(a: Appointment) {
+    if (
+      !window.confirm(
+        `Cancel the appointment for ${a.patient.profile.name} with Dr. ${a.doctor.profile.name}? A paid consultation will be marked refunded and the slot freed.`
+      )
+    )
+      return;
+    setActingId(a.id);
+    setError(null);
+    try {
+      await updateAppointmentStatus(a.id, "CANCELLED");
+      await loadAppointments();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  // TEMPORARY: hard-delete an appointment from the DB (no record kept).
+  async function deleteAppointment(a: Appointment) {
+    if (
+      !window.confirm(
+        `Permanently DELETE the appointment for ${a.patient.profile.name} with Dr. ${a.doctor.profile.name} from the database? This cannot be undone.`
+      )
+    )
+      return;
+    setActingId(a.id);
+    setError(null);
+    try {
+      await adminDeleteAppointment(a.id);
+      await loadAppointments();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setActingId(null);
+    }
+  }
+
   function refreshAll() {
     loadApps(tab);
     loadUsers();
     loadPending();
+    loadAppointments();
   }
 
   return (
@@ -342,6 +403,75 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </section>
+
+          {/* Appointments — admin can cancel any non-final appointment */}
+          <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/10">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-primary">Appointments</h3>
+                <p className="text-xs text-on-surface-variant">
+                  Only an admin can cancel a booking.
+                </p>
+              </div>
+              <span className="text-xs text-on-surface-variant">{appointments.length} total</span>
+            </div>
+            {loadingAppts ? (
+              <p className="text-sm text-on-surface-variant">Loading…</p>
+            ) : appointments.length === 0 ? (
+              <p className="text-sm text-on-surface-variant">No appointments yet.</p>
+            ) : (
+              <div className="overflow-x-auto max-h-[28rem] overflow-y-auto">
+                <table className="w-full text-left">
+                  <thead className="sticky top-0 bg-surface-container-lowest z-10">
+                    <tr className="text-[10px] uppercase tracking-widest text-outline font-bold border-b border-outline-variant/10">
+                      <th className="pb-4">Patient</th>
+                      <th className="pb-4">Doctor</th>
+                      <th className="pb-4">When</th>
+                      <th className="pb-4">Status</th>
+                      <th className="pb-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10">
+                    {appointments.map((a) => {
+                      const final = a.status === "COMPLETED" || a.status === "CANCELLED";
+                      return (
+                        <tr key={a.id} className="hover:bg-surface-container-low transition-colors">
+                          <td className="py-3 text-sm font-medium text-on-surface">{a.patient.profile.name}</td>
+                          <td className="py-3 text-sm text-on-surface-variant">Dr. {a.doctor.profile.name}</td>
+                          <td className="py-3 text-sm text-on-surface-variant whitespace-nowrap">
+                            {new Date(a.scheduledAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                            {" · "}
+                            {new Date(a.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </td>
+                          <td className="py-3"><StatusBadge status={a.status} /></td>
+                          <td className="py-3 text-right whitespace-nowrap">
+                            {!final && (
+                              <button
+                                onClick={() => cancelAppointment(a)}
+                                disabled={actingId === a.id}
+                                className="px-3 py-1.5 text-[10px] font-bold text-error hover:bg-error-container/20 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                            {/* TEMPORARY: hard delete from DB */}
+                            <button
+                              onClick={() => deleteAppointment(a)}
+                              disabled={actingId === a.id}
+                              title="Delete from database (temporary)"
+                              className="px-2 py-1.5 text-on-surface-variant hover:text-error transition-colors disabled:opacity-50"
+                            >
+                              <span className="material-symbols-outlined text-base align-middle">delete_forever</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </section>

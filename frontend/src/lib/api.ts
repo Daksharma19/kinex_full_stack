@@ -225,12 +225,46 @@ export function listVerifiedDoctors() {
   return apiFetch<{ doctors: VerifiedDoctor[] }>("/doctor");
 }
 
+export interface TimeSlot {
+  id: string;
+  doctorId: string;
+  startsAt: string;
+  isBooked: boolean;
+}
+
+/** Public: a doctor's available (unbooked, future) slots. */
+export function listDoctorSlots(doctorId: string) {
+  return apiFetch<{ slots: TimeSlot[] }>(`/doctor/${doctorId}/slots`);
+}
+
+/** DOCTOR-only: list own upcoming slots (booked and free). */
+export function listMySlots() {
+  return apiFetch<{ slots: TimeSlot[] }>("/doctor/me/slots");
+}
+
+/** DOCTOR-only: publish one or more 1-hour slots (ISO start times). */
+export function createMySlots(slots: string[]) {
+  return apiFetch<{ message: string; slots: TimeSlot[] }>("/doctor/me/slots", {
+    method: "POST",
+    body: JSON.stringify({ slots }),
+  });
+}
+
+/** DOCTOR-only: remove an unbooked slot. */
+export function deleteMySlot(slotId: string) {
+  return apiFetch<{ message: string }>(`/doctor/me/slots/${slotId}`, {
+    method: "DELETE",
+  });
+}
+
 export type AppointmentMode = "ONLINE" | "HOME_VISIT";
 export type AppointmentStatus =
   | "PENDING"
   | "CONFIRMED"
   | "COMPLETED"
   | "CANCELLED";
+
+export type PaymentStatus = "PENDING" | "VERIFIED" | "FAILED" | "REFUNDED";
 
 export interface Appointment {
   id: string;
@@ -245,19 +279,56 @@ export interface Appointment {
     profile: { name: string; email: string; phone?: string | null };
   };
   doctor: { profile: { name: string; email: string } };
+  // Payment amount is in rupees; null until a payment row exists.
+  payment?: { status: PaymentStatus; amount: number } | null;
 }
 
-/** PATIENT-only: book an appointment with a verified doctor. */
+/** Razorpay order details returned when a booking is started. */
+export interface PaymentOrder {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+}
+
+/**
+ * PATIENT-only: start a booking against an available slot. Creates a PENDING
+ * appointment and returns a Razorpay order to complete payment with.
+ */
 export function bookAppointment(input: {
-  doctorId: string;
+  slotId: string;
   mode: AppointmentMode;
-  scheduledAt: string;
   notes?: string;
 }) {
-  return apiFetch<{ message: string; appointment: Appointment }>("/appointment", {
-    method: "POST",
-    body: JSON.stringify(input),
+  return apiFetch<{ message: string; appointment: Appointment; payment: PaymentOrder }>(
+    "/appointment",
+    { method: "POST", body: JSON.stringify(input) }
+  );
+}
+
+/**
+ * PATIENT-only: release a pending (unpaid) booking — frees the slot. Call when
+ * the patient closes the payment popup without paying.
+ */
+export function releaseAppointment(appointmentId: string) {
+  return apiFetch<{ message: string }>(`/appointment/${appointmentId}/release`, {
+    method: "DELETE",
   });
+}
+
+/** PATIENT-only: verify a Razorpay payment to auto-confirm the appointment. */
+export function verifyAppointmentPayment(
+  appointmentId: string,
+  input: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+  }
+) {
+  return apiFetch<{ message: string; appointment: Appointment }>(
+    `/appointment/${appointmentId}/payment/verify`,
+    { method: "POST", body: JSON.stringify(input) }
+  );
 }
 
 /** List the caller's appointments (patient: their bookings, doctor: with them). */
@@ -265,15 +336,25 @@ export function listMyAppointments() {
   return apiFetch<{ appointments: Appointment[] }>("/appointment");
 }
 
-/** DOCTOR/ADMIN: update an appointment's status. */
+/**
+ * Update an appointment's status. Only COMPLETED (doctor) or CANCELLED (admin);
+ * CONFIRMED happens automatically on payment success.
+ */
 export function updateAppointmentStatus(
   id: string,
-  status: Exclude<AppointmentStatus, "PENDING">
+  status: "COMPLETED" | "CANCELLED"
 ) {
   return apiFetch<{ message: string; appointment: Appointment }>(
     `/appointment/${id}/status`,
     { method: "PATCH", body: JSON.stringify({ status }) }
   );
+}
+
+/** TEMPORARY (ADMIN-only): hard-delete an appointment from the database. */
+export function adminDeleteAppointment(id: string) {
+  return apiFetch<{ message: string }>(`/appointment/${id}`, {
+    method: "DELETE",
+  });
 }
 
 /** Create the PATIENT profile for the current authenticated Supabase user. */
