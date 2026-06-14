@@ -116,26 +116,10 @@ export async function getMe(): Promise<MeResponse> {
 }
 
 /**
- * Register a new patient (public). The backend creates the auth user with email
- * pre-confirmed AND the profile, so no email confirmation is needed. After this
- * resolves, sign in with the same credentials to get a session.
- */
-export function signUpPatient(input: {
-  email: string;
-  password: string;
-  name: string;
-  phone?: string;
-}) {
-  return apiFetch("/auth/signup", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-}
-
-/**
- * sessionStorage key used to carry doctor-apply form details across the Google
- * OAuth redirect. Set before redirecting; consumed (and cleared) once the user
- * comes back authenticated. See AuthContext + DoctorApplyPage.
+ * sessionStorage key used to carry doctor-apply form details across the
+ * email-confirmation / Google OAuth redirect. Set before signup; consumed (and
+ * cleared) once the user comes back authenticated. See AuthContext +
+ * DoctorApplyPage.
  */
 export const DOCTOR_APPLY_INTENT_KEY = "doctorApplyIntent";
 
@@ -148,19 +132,8 @@ export interface DoctorDetails {
 }
 
 /**
- * Register a new doctor via email/password (public). Backend creates the
- * pre-confirmed auth user + DOCTOR profile (status PENDING). Sign in afterwards
- * to get a session.
- */
-export function signUpDoctor(input: DoctorDetails & { email: string; password: string }) {
-  return apiFetch("/doctor/signup", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-}
-
-/**
- * Apply as a doctor for an ALREADY-authenticated user (e.g. after Google login).
+ * Apply as a doctor for an ALREADY-authenticated user (e.g. after email
+ * confirmation or Google login).
  * Identity comes from the token; only the doctor details are sent.
  */
 export function applyDoctor(input: DoctorDetails) {

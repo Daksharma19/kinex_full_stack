@@ -4,10 +4,10 @@ import { requireAuth, requireProfile, requireRole } from '../middleware/auth.mid
 
 const doctorRouter = Router();
 
-// Public: email/password doctor signup (creates pre-confirmed auth user +
-// DOCTOR profile, status PENDING) — no email confirmation needed.
-doctorRouter.post('/signup', doctorController.registerDoctor);
-// Applicant is already authenticated (e.g. via Google) but has no profile yet.
+// Doctor signup is handled on the frontend via supabase.auth.signUp() with email
+// confirmation. The DOCTOR profile (status PENDING) is created here once the
+// applicant confirms and is authenticated — AuthContext reads the stashed
+// details and calls POST /doctor/apply.
 doctorRouter.post('/apply', requireAuth, doctorController.applyAsDoctor);
 
 // Signed-in doctor manages their own profile + photo.

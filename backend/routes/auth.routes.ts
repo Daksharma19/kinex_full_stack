@@ -3,11 +3,9 @@ import * as authController from '../controllers/auth.controller';
 import { requireAuth, requireProfile } from '../middleware/auth.middleware';
 const authRouter = Router();
 
-// Public: create a patient account (auth user + profile) with email
-// pre-confirmed server-side, so signup works without email delivery.
-authRouter.post('/signup', authController.registerPatient);
-
-// User is authenticated but may not have a profile yet.
+// Signup is handled on the frontend via supabase.auth.signUp() with email
+// confirmation; the PATIENT profile is created here once the user confirms and
+// is authenticated (AuthContext calls POST /auth/profile).
 authRouter.post('/profile', requireAuth, authController.createPatientProfile);
 // NOTE: only requireAuth here (no requireProfile). /me must be reachable by an
 // authenticated user who has NOT onboarded yet so it can return { profile: null }

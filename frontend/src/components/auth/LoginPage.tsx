@@ -24,18 +24,44 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // True when login failed because the email hasn't been confirmed yet — lets us
+  // offer a "resend confirmation" action.
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
+    setUnconfirmed(false);
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      // Supabase returns "Email not confirmed" (code email_not_confirmed) when
+      // confirmation is required but the link hasn't been clicked.
+      const code = (error as { code?: string }).code;
+      if (code === "email_not_confirmed" || /not confirmed/i.test(error.message)) {
+        setUnconfirmed(true);
+        setError("Please confirm your email before logging in.");
+      } else {
+        setError(error.message);
+      }
       return;
     }
     navigate(from, { replace: true });
+  }
+
+  async function resendConfirmation() {
+    setError(null);
+    setNotice(null);
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    });
+    if (error) setError(error.message);
+    else setNotice("Confirmation email sent. Check your inbox.");
   }
 
   return (
@@ -71,6 +97,16 @@ export default function LoginPage() {
           </div>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {notice && <p className="text-sm text-green-600">{notice}</p>}
+        {unconfirmed && (
+          <button
+            type="button"
+            onClick={resendConfirmation}
+            className="text-sm text-primary underline self-start"
+          >
+            Resend confirmation email
+          </button>
+        )}
         <Button type="submit" disabled={loading}>
           {loading ? "Logging in…" : "Log in"}
         </Button>

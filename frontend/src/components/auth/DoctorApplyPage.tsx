@@ -1,14 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import {
-  signUpDoctor,
-  DOCTOR_APPLY_INTENT_KEY,
-  type DoctorDetails,
-} from "../../lib/api";
-import { useAuth } from "../../context/AuthContext";
+import { DOCTOR_APPLY_INTENT_KEY, type DoctorDetails } from "../../lib/api";
 import GoogleButton from "./GoogleButton";
 import TermsCheckbox from "./TermsCheckbox";
+import CheckEmailNotice from "./CheckEmailNotice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,15 +14,17 @@ import { Eye, EyeOff } from "lucide-react";
  * "Apply as a Doctor" — same two paths as patient signup, but creates a DOCTOR
  * profile (status PENDING until an admin verifies).
  *
- * - Email/password: POST /doctor/signup, then sign in for a session.
- * - Google: stash the doctor details in sessionStorage and start OAuth; when the
- *   user returns, AuthContext reads the stash and calls POST /doctor/apply.
+ * Both paths stash the doctor details in sessionStorage and defer profile
+ * creation until the user is authenticated, at which point AuthContext reads the
+ * stash and calls POST /doctor/apply:
+ * - Email/password: supabase.auth.signUp() emails a confirmation link; the stash
+ *   is consumed when the user returns via that link.
+ * - Google: start OAuth; the stash is consumed on return.
  *
  * Existing doctors just use the normal /login.
  */
 export default function DoctorApplyPage() {
-  const navigate = useNavigate();
-  const { refreshProfile } = useAuth();
+  const [sent, setSent] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -63,18 +61,32 @@ export default function DoctorApplyPage() {
     setError(null);
     setLoading(true);
     try {
-      await signUpDoctor({
-        ...doctorDetails(),
+      // Stash the doctor details so AuthContext can create the DOCTOR profile
+      // once the user confirms their email and returns authenticated.
+      sessionStorage.setItem(
+        DOCTOR_APPLY_INTENT_KEY,
+        JSON.stringify(doctorDetails())
+      );
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: { full_name: form.name },
+        },
       });
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.password,
-      });
-      if (signInError) throw signInError;
-      await refreshProfile();
-      navigate("/dashboard", { replace: true });
+      if (signUpError) {
+        sessionStorage.removeItem(DOCTOR_APPLY_INTENT_KEY);
+        throw signUpError;
+      }
+      // Already-registered email: Supabase returns a user with no identities and
+      // sends no mail (anti-enumeration). Don't show a dead "check email" screen.
+      if (data.user && data.user.identities?.length === 0) {
+        sessionStorage.removeItem(DOCTOR_APPLY_INTENT_KEY);
+        setError("An account with this email already exists - please log in.");
+        return;
+      }
+      setSent(true);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -95,6 +107,10 @@ export default function DoctorApplyPage() {
     }
     sessionStorage.setItem(DOCTOR_APPLY_INTENT_KEY, JSON.stringify(doctorDetails()));
     return true;
+  }
+
+  if (sent) {
+    return <CheckEmailNotice email={form.email} />;
   }
 
   return (

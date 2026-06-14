@@ -1,25 +1,24 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
-import { signUpPatient } from "../../lib/api";
-import { useAuth } from "../../context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import GoogleButton from "./GoogleButton";
 import TermsCheckbox from "./TermsCheckbox";
+import CheckEmailNotice from "./CheckEmailNotice";
 import { Eye, EyeOff } from "lucide-react";
 
 /**
- * Sign up via the backend (POST /auth/signup), which creates the auth user with
- * email pre-confirmed AND the PATIENT profile. We then sign in with the same
- * credentials to obtain a session, and AuthProvider picks it up. No email
- * confirmation step — works regardless of the project's email settings.
+ * Patient signup via Supabase's native email confirmation flow.
+ *
+ * We call supabase.auth.signUp() (not the old pre-confirming backend endpoint),
+ * so Supabase emails a confirmation link. No session exists until the user
+ * clicks it. The full name is passed in options.data; AuthContext reads it from
+ * user_metadata to provision the PATIENT profile on first authenticated load —
+ * the same deferred-provisioning path Google sign-in already uses.
  */
 export default function SignupPage() {
-  const navigate = useNavigate();
-  const { refreshProfile } = useAuth();
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,6 +26,7 @@ export default function SignupPage() {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -38,24 +38,32 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      // 1. Backend creates the pre-confirmed auth user + patient profile.
-      await signUpPatient({ email, password, name });
-
-      // 2. Sign in to get a session on the shared client.
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: { full_name: name },
+        },
       });
-      if (signInError) throw signInError;
-
-      // 3. Load the freshly created profile and go to the dashboard.
-      await refreshProfile();
-      navigate("/dashboard", { replace: true });
+      if (signUpError) throw signUpError;
+      // Supabase doesn't error on an already-registered email (anti-enumeration);
+      // it returns a user with an empty `identities` array and sends no mail.
+      // Detect that and steer the user to log in instead of a dead "check email".
+      if (data.user && data.user.identities?.length === 0) {
+        setError("An account with this email already exists - please log in.");
+        return;
+      }
+      setSent(true);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (sent) {
+    return <CheckEmailNotice email={email} />;
   }
 
   return (
