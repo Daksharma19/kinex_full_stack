@@ -227,9 +227,9 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[28rem] overflow-y-auto">
               <table className="w-full text-left">
-                <thead>
+                <thead className="sticky top-0 bg-surface-container-lowest z-10">
                   <tr className="text-[10px] uppercase tracking-widest text-outline font-bold border-b border-outline-variant/10">
                     <th className="pb-4">Doctor</th>
                     <th className="pb-4">Specialty</th>
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
             {loadingUsers ? (
               <p className="text-sm text-on-surface-variant">Loading…</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[28rem] overflow-y-auto pr-1">
                 {users.map((u) => (
                   <div
                     key={u.id}
