@@ -2,9 +2,9 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { DOCTOR_APPLY_INTENT_KEY, type DoctorDetails } from "../../lib/api";
-import GoogleButton from "./GoogleButton";
+// import GoogleButton from "./GoogleButton"; // temporarily disabled for doctors
 import TermsCheckbox from "./TermsCheckbox";
-import CheckEmailNotice from "./CheckEmailNotice";
+import VerifyOtpForm from "./VerifyOtpForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +14,11 @@ import { Eye, EyeOff } from "lucide-react";
  * "Apply as a Doctor" — same two paths as patient signup, but creates a DOCTOR
  * profile (status PENDING until an admin verifies).
  *
- * Both paths stash the doctor details in sessionStorage and defer profile
- * creation until the user is authenticated, at which point AuthContext reads the
- * stash and calls POST /doctor/apply:
- * - Email/password: supabase.auth.signUp() emails a confirmation link; the stash
- *   is consumed when the user returns via that link.
+ * Both paths stash the doctor details (localStorage + user_metadata) and defer
+ * profile creation until the user is authenticated, at which point AuthContext
+ * reads the stash and calls POST /doctor/apply:
+ * - Email/password: supabase.auth.signUp() emails a 6-digit code; the user
+ *   enters it on VerifyOtpForm (same tab), so the stash is preserved.
  * - Google: start OAuth; the stash is consumed on return.
  *
  * Existing doctors just use the normal /login.
@@ -63,7 +63,7 @@ export default function DoctorApplyPage() {
     try {
       // Stash the doctor details so AuthContext can create the DOCTOR profile
       // once the user confirms their email and returns authenticated.
-      sessionStorage.setItem(
+      localStorage.setItem(
         DOCTOR_APPLY_INTENT_KEY,
         JSON.stringify(doctorDetails())
       );
@@ -71,18 +71,20 @@ export default function DoctorApplyPage() {
         email: form.email,
         password: form.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-          data: { full_name: form.name },
+          // Also stamp the application into user_metadata so AuthContext can
+          // provision a DOCTOR profile even if localStorage is unavailable
+          // (e.g. the code is entered on a different device/browser).
+          data: { full_name: form.name, doctor_application: doctorDetails() },
         },
       });
       if (signUpError) {
-        sessionStorage.removeItem(DOCTOR_APPLY_INTENT_KEY);
+        localStorage.removeItem(DOCTOR_APPLY_INTENT_KEY);
         throw signUpError;
       }
       // Already-registered email: Supabase returns a user with no identities and
       // sends no mail (anti-enumeration). Don't show a dead "check email" screen.
       if (data.user && data.user.identities?.length === 0) {
-        sessionStorage.removeItem(DOCTOR_APPLY_INTENT_KEY);
+        localStorage.removeItem(DOCTOR_APPLY_INTENT_KEY);
         setError("An account with this email already exists - please log in.");
         return;
       }
@@ -94,23 +96,25 @@ export default function DoctorApplyPage() {
     }
   }
 
-  // Runs right before the Google redirect: require the doctor fields and stash
-  // them so we can finish the application when the user returns.
-  function beforeGoogle(): boolean {
-    if (!agreed) {
-      setError("Please agree to the Terms & Conditions to continue.");
-      return false;
-    }
-    if (!form.name || !form.specialization || !form.licenseNumber) {
-      setError("Fill in name, specialization and license number before using Google.");
-      return false;
-    }
-    sessionStorage.setItem(DOCTOR_APPLY_INTENT_KEY, JSON.stringify(doctorDetails()));
-    return true;
-  }
+  // Google sign-in for doctors is temporarily disabled (apply via email only).
+  // Restore this helper alongside the <GoogleButton> below to re-enable it.
+  // // Runs right before the Google redirect: require the doctor fields and stash
+  // // them so we can finish the application when the user returns.
+  // function beforeGoogle(): boolean {
+  //   if (!agreed) {
+  //     setError("Please agree to the Terms & Conditions to continue.");
+  //     return false;
+  //   }
+  //   if (!form.name || !form.specialization || !form.licenseNumber) {
+  //     setError("Fill in name, specialization and license number before using Google.");
+  //     return false;
+  //   }
+  //   localStorage.setItem(DOCTOR_APPLY_INTENT_KEY, JSON.stringify(doctorDetails()));
+  //   return true;
+  // }
 
   if (sent) {
-    return <CheckEmailNotice email={form.email} />;
+    return <VerifyOtpForm email={form.email} />;
   }
 
   return (
@@ -177,7 +181,8 @@ export default function DoctorApplyPage() {
           {loading ? "Submitting…" : "Submit application"}
         </Button>
 
-        <GoogleButton beforeRedirect={beforeGoogle} />
+        {/* Google sign-in temporarily disabled for doctors — apply via email only.
+        <GoogleButton beforeRedirect={beforeGoogle} /> */}
 
         <p className="text-sm text-center text-on-surface-variant">
           Already a doctor?{" "}

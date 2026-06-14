@@ -85,6 +85,8 @@ model Doctor {
   profileId      String       @unique @map("profile_id") @db.Uuid
   specialization String
   licenseNumber  String       @unique @map("license_number")
+  // Self-set consultation fee in whole rupees (INR). Null until the doctor sets it.
+  consultationFee Int?        @map("consultation_fee")
   status         DoctorStatus @default(PENDING)
   verifiedById   String?      @map("verified_by") @db.Uuid
   verifiedAt     DateTime?    @map("verified_at")

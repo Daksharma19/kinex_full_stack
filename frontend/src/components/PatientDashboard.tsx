@@ -303,6 +303,9 @@ export default function PatientDashboard() {
                       </div>
                       <p className="font-bold text-on-surface text-sm">{d.profile.name}</p>
                       <p className="text-xs text-on-surface-variant">{d.specialization}</p>
+                      <p className="text-xs font-bold text-primary">
+                        {d.consultationFee != null ? `₹${d.consultationFee} consultation` : "Fee not set"}
+                      </p>
                       <Button className="mt-1" onClick={() => openBooking(d)}>Book</Button>
                     </div>
                   ))}
@@ -312,6 +315,11 @@ export default function PatientDashboard() {
               {selected && (
                 <div className="rounded-xl border border-primary/20 p-6 bg-primary/5 flex flex-col gap-4 max-w-md">
                   <h4 className="font-bold text-on-surface">Book with {selected.profile.name}</h4>
+                  {selected.consultationFee != null && (
+                    <p className="text-sm font-bold text-primary">
+                      Consultation fee: ₹{selected.consultationFee}
+                    </p>
+                  )}
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="mode">Mode</Label>
                     <select

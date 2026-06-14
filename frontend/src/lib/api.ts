@@ -83,11 +83,12 @@ export function uploadMyPhoto(dataUrl: string) {
   });
 }
 
-/** DOCTOR-only: update own profile (name/phone/specialization). */
+/** DOCTOR-only: update own profile (name/phone/specialization/consultation fee). */
 export function updateDoctorProfile(input: {
   name?: string;
   phone?: string;
   specialization?: string;
+  consultationFee?: number | null;
 }) {
   return apiFetch<{ message: string }>("/doctor/me", {
     method: "PATCH",
@@ -116,10 +117,15 @@ export async function getMe(): Promise<MeResponse> {
 }
 
 /**
- * sessionStorage key used to carry doctor-apply form details across the
+ * localStorage key used to carry doctor-apply form details across the
  * email-confirmation / Google OAuth redirect. Set before signup; consumed (and
  * cleared) once the user comes back authenticated. See AuthContext +
  * DoctorApplyPage.
+ *
+ * NOTE: localStorage (not sessionStorage) is required because the email
+ * confirmation link opens in a NEW tab/window, which does not inherit
+ * sessionStorage — using sessionStorage caused doctors to be provisioned as
+ * patients when they returned via the email link.
  */
 export const DOCTOR_APPLY_INTENT_KEY = "doctorApplyIntent";
 
@@ -210,6 +216,7 @@ export interface VerifiedDoctor {
   id: string;
   specialization: string;
   licenseNumber: string;
+  consultationFee: number | null;
   profile: { name: string; email: string; phone: string | null };
 }
 

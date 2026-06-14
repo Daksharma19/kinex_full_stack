@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext";
  * consumes the callback. Shared by the login, signup, and doctor-apply pages.
  *
  * `beforeRedirect` lets a caller validate/stash state right before the redirect
- * (e.g. the doctor-apply form saves its details to sessionStorage). Return false
+ * (e.g. the doctor-apply form saves its details to localStorage). Return false
  * to abort the redirect (e.g. validation failed).
  */
 export default function GoogleButton({

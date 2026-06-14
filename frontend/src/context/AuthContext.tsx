@@ -68,12 +68,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // for OAuth.
       if (!profile) {
         try {
-          // If the user came through "Apply as a Doctor" with Google, the form
-          // details were stashed before the redirect — create a DOCTOR profile.
-          const intentRaw = sessionStorage.getItem(DOCTOR_APPLY_INTENT_KEY);
-          if (intentRaw) {
-            sessionStorage.removeItem(DOCTOR_APPLY_INTENT_KEY);
-            await applyDoctor(JSON.parse(intentRaw) as DoctorDetails);
+          // If the user came through "Apply as a Doctor", the form details were
+          // stashed before signup — create a DOCTOR profile. We check both
+          // localStorage (same browser) and user_metadata (survives across
+          // devices/browsers), so the doctor is never mis-provisioned as a
+          // patient regardless of where they entered the verification code.
+          const intentRaw = localStorage.getItem(DOCTOR_APPLY_INTENT_KEY);
+          const metaApplication =
+            currentSession.user.user_metadata?.doctor_application;
+          if (intentRaw || metaApplication) {
+            localStorage.removeItem(DOCTOR_APPLY_INTENT_KEY);
+            const details = (
+              intentRaw ? JSON.parse(intentRaw) : metaApplication
+            ) as DoctorDetails;
+            await applyDoctor(details);
           } else {
             // Default: a regular Google sign-in => PATIENT profile from identity.
             const u = currentSession.user;
