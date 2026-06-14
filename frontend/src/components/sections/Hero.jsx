@@ -13,7 +13,7 @@ export default function Hero() {
   }
 
   return (
-    <section className="relative min-h-[85vh] flex items-center overflow-hidden py-28 md:py-0">
+    <section className="relative min-h-[85vh] flex items-center overflow-hidden py-28 md:py-24">
       <div className="absolute inset-0 z-0">
         <img
           alt="Clinical Hero Background"
