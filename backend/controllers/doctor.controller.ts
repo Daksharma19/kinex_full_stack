@@ -55,25 +55,46 @@ const AVATAR_BUCKET = "avatars";
 
 /**
  * Update the signed-in doctor's own profile. DOCTOR-only (route middleware).
- * Editable: profile name/phone and the doctor's specialization. License number
- * and verification status are intentionally not self-editable.
+ * Editable: profile name/phone and the doctor's specialization + consultation
+ * fee. License number and verification status are intentionally not self-editable.
  */
 export async function updateMyDoctorProfile(req: Request, res: Response) {
   try {
     const profileId = req.profile!.id;
-    const { name, phone, specialization } = req.body;
+    const { name, phone, specialization, consultationFee } = req.body;
 
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ message: "name cannot be empty" });
     }
+
+    // Consultation fee: whole rupees, non-negative. Empty/null clears it.
+    let feeValue: number | null | undefined;
+    if (consultationFee !== undefined) {
+      if (consultationFee === null || consultationFee === "") {
+        feeValue = null;
+      } else {
+        const n = Number(consultationFee);
+        if (!Number.isInteger(n) || n < 0) {
+          return res
+            .status(400)
+            .json({ message: "consultationFee must be a non-negative whole number" });
+        }
+        feeValue = n;
+      }
+    }
+
+    const doctorUpdate = {
+      ...(specialization !== undefined ? { specialization } : {}),
+      ...(feeValue !== undefined ? { consultationFee: feeValue } : {}),
+    };
 
     const profile = await prisma.profile.update({
       where: { id: profileId },
       data: {
         ...(name !== undefined ? { name: String(name).trim() } : {}),
         ...(phone !== undefined ? { phone: phone || null } : {}),
-        ...(specialization !== undefined
-          ? { doctor: { update: { specialization } } }
+        ...(Object.keys(doctorUpdate).length > 0
+          ? { doctor: { update: doctorUpdate } }
           : {}),
       },
       include: { doctor: true },

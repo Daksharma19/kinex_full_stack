@@ -6,17 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import GoogleButton from "./GoogleButton";
 import TermsCheckbox from "./TermsCheckbox";
-import CheckEmailNotice from "./CheckEmailNotice";
+import VerifyOtpForm from "./VerifyOtpForm";
 import { Eye, EyeOff } from "lucide-react";
 
 /**
- * Patient signup via Supabase's native email confirmation flow.
+ * Patient signup via Supabase's native email confirmation flow, verified with a
+ * 6-digit OTP code (not a magic link).
  *
- * We call supabase.auth.signUp() (not the old pre-confirming backend endpoint),
- * so Supabase emails a confirmation link. No session exists until the user
- * clicks it. The full name is passed in options.data; AuthContext reads it from
- * user_metadata to provision the PATIENT profile on first authenticated load —
- * the same deferred-provisioning path Google sign-in already uses.
+ * We call supabase.auth.signUp(), so Supabase emails a confirmation code. No
+ * session exists until the user enters it on VerifyOtpForm (same tab). The full
+ * name is passed in options.data; AuthContext reads it from user_metadata to
+ * provision the PATIENT profile on first authenticated load — the same
+ * deferred-provisioning path Google sign-in already uses.
  */
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -42,7 +43,6 @@ export default function SignupPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: { full_name: name },
         },
       });
@@ -63,7 +63,7 @@ export default function SignupPage() {
   }
 
   if (sent) {
-    return <CheckEmailNotice email={email} />;
+    return <VerifyOtpForm email={email} />;
   }
 
   return (

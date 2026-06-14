@@ -85,7 +85,7 @@ const isSameDay = (a: Date, b: Date) =>
 export default function DoctorDashboard() {
   const { profile, refreshProfile } = useAuth();
   const toast = useToast();
-  const doctor = (profile as { doctor?: { status: string; specialization: string; licenseNumber: string } } | null)?.doctor;
+  const doctor = (profile as { doctor?: { status: string; specialization: string; licenseNumber: string; consultationFee: number | null } } | null)?.doctor;
   const doctorStatus = doctor?.status;
   const photoUrl = (profile as { photoUrl?: string | null } | null)?.photoUrl ?? null;
   const phone = (profile as { phone?: string | null } | null)?.phone ?? "";
@@ -98,7 +98,7 @@ export default function DoctorDashboard() {
   // Profile editing + photo upload state.
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", specialization: "" });
+  const [form, setForm] = useState({ name: "", phone: "", specialization: "", consultationFee: "" });
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -108,6 +108,8 @@ export default function DoctorDashboard() {
       name: profile?.name || "",
       phone: phone || "",
       specialization: doctor?.specialization || "",
+      consultationFee:
+        doctor?.consultationFee != null ? String(doctor.consultationFee) : "",
     });
     setProfileError(null);
     setEditing(true);
@@ -117,7 +119,13 @@ export default function DoctorDashboard() {
     setSavingProfile(true);
     setProfileError(null);
     try {
-      await updateDoctorProfile(form);
+      const fee = form.consultationFee.trim();
+      await updateDoctorProfile({
+        name: form.name,
+        phone: form.phone,
+        specialization: form.specialization,
+        consultationFee: fee === "" ? null : Number(fee),
+      });
       await refreshProfile();
       setEditing(false);
       toast.success("Profile saved");
@@ -414,6 +422,13 @@ export default function DoctorDashboard() {
                   value={form.specialization}
                   onChange={(v) => setForm((f) => ({ ...f, specialization: v }))}
                 />
+                <EditField
+                  label="Consultation Fee (₹)"
+                  value={form.consultationFee}
+                  onChange={(v) =>
+                    setForm((f) => ({ ...f, consultationFee: v.replace(/[^0-9]/g, "") }))
+                  }
+                />
                 <Field label="License Number" value={doctor?.licenseNumber || "—"} />
                 <Field label="Email" value={profile?.email || "—"} />
                 <div className="flex gap-3 pt-2">
@@ -437,6 +452,10 @@ export default function DoctorDashboard() {
               <div className="space-y-4">
                 <Field label="Full Name" value={profile?.name ? `Dr. ${profile.name}` : "—"} />
                 <Field label="Specialization" value={doctor?.specialization || "—"} />
+                <Field
+                  label="Consultation Fee"
+                  value={doctor?.consultationFee != null ? `₹${doctor.consultationFee}` : "—"}
+                />
                 <Field label="Phone" value={phone || "—"} />
                 <Field label="License Number" value={doctor?.licenseNumber || "—"} />
                 <Field label="Email" value={profile?.email || "—"} />
