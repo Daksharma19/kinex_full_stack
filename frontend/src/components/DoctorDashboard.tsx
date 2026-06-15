@@ -669,16 +669,30 @@ function RowActions({
 }) {
   // Pending appointments are awaiting the patient's payment; doctors act only
   // once an appointment is CONFIRMED. Completing is the doctor's only action —
-  // cancellation is admin-only.
+  // cancellation is admin-only. For ONLINE consultations, also offer a "Join"
+  // button that opens the doctor's host video room.
   if (appt.status === "CONFIRMED") {
     return (
-      <button
-        onClick={() => onSet(appt.id, "COMPLETED")}
-        disabled={busy}
-        className="text-primary text-sm font-bold hover:underline disabled:opacity-50"
-      >
-        Mark completed
-      </button>
+      <div className="flex items-center gap-3">
+        {appt.mode === "ONLINE" && appt.hostRoomUrl && (
+          <a
+            href={appt.hostRoomUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 bg-primary-container text-on-primary px-3 py-1.5 rounded-lg font-bold text-xs hover:shadow-md transition-all whitespace-nowrap"
+          >
+            <span className="material-symbols-outlined text-sm">video_call</span>
+            Join
+          </a>
+        )}
+        <button
+          onClick={() => onSet(appt.id, "COMPLETED")}
+          disabled={busy}
+          className="text-primary text-sm font-bold hover:underline disabled:opacity-50"
+        >
+          Mark completed
+        </button>
+      </div>
     );
   }
   if (appt.status === "PENDING") {

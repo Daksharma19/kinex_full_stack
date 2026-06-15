@@ -281,6 +281,10 @@ export interface Appointment {
   doctor: { profile: { name: string; email: string } };
   // Payment amount is in rupees; null until a payment row exists.
   payment?: { status: PaymentStatus; amount: number } | null;
+  // Video consultation links (ONLINE appointments, set once paid). The backend
+  // scopes these by role: a patient receives roomUrl, a doctor hostRoomUrl.
+  roomUrl?: string | null;
+  hostRoomUrl?: string | null;
 }
 
 /** Razorpay order details returned when a booking is started. */

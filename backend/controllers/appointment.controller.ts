@@ -6,6 +6,8 @@ import {
   razorpayKeyId,
   verifyPaymentSignature,
 } from "../utils/razorpay";
+import { createWherebyMeeting } from "../utils/whereby";
+import { buildReminderEmail, sendMail } from "../utils/email";
 
 const VALID_MODE = ["ONLINE", "HOME_VISIT"];
 
@@ -179,9 +181,33 @@ export async function verifyAppointmentPayment(req: Request, res: Response) {
       }),
     ]);
 
-    return res
-      .status(200)
-      .json({ message: "Payment verified — appointment confirmed", appointment: updated });
+    // For ONLINE consultations, provision a Whereby video room now that the
+    // appointment is paid + confirmed. Best-effort: a failure here must not undo
+    // the confirmed payment, so we log and continue (the doctor can follow up).
+    let withRoom = updated;
+    if (updated.mode === "ONLINE") {
+      try {
+        const meeting = await createWherebyMeeting(updated.scheduledAt);
+        if (meeting) {
+          withRoom = await prisma.appointment.update({
+            where: { id: updated.id },
+            data: {
+              meetingId: meeting.meetingId,
+              roomUrl: meeting.roomUrl,
+              hostRoomUrl: meeting.hostRoomUrl,
+            },
+          });
+        }
+      } catch (err) {
+        console.error("Whereby meeting creation failed:", err);
+      }
+    }
+
+    // This endpoint is patient-only — never hand back the doctor's host link.
+    return res.status(200).json({
+      message: "Payment verified — appointment confirmed",
+      appointment: { ...withRoom, hostRoomUrl: null },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -217,8 +243,13 @@ export async function listMyAppointments(req: Request, res: Response) {
     });
 
     // Convert the payment's BigInt amount (paise) to a JSON-safe rupee number.
+    // Scope the video links by role: a patient only gets their roomUrl, a doctor
+    // only gets the host link — never expose the other party's join URL.
+    const isDoctor = caller.role === "DOCTOR";
     const appointments = rows.map((a) => ({
       ...a,
+      hostRoomUrl: isDoctor ? a.hostRoomUrl : null,
+      roomUrl: isDoctor ? null : a.roomUrl,
       payment: a.payment
         ? { status: a.payment.status, amount: Number(a.payment.amountPaise) / 100 }
         : null,
@@ -254,7 +285,16 @@ export async function getAppointmentById(req: Request, res: Response) {
       return res.status(403).json({ message: "Not allowed to view this appointment" });
     }
 
-    return res.status(200).json({ appointment });
+    // Scope the video links: the doctor sees the host link, everyone else the
+    // patient join link only (admins viewing for support get the patient link).
+    const isDoctorParty = appointment.doctor.profile.id === caller.id;
+    const scoped = {
+      ...appointment,
+      hostRoomUrl: isDoctorParty ? appointment.hostRoomUrl : null,
+      roomUrl: isDoctorParty ? null : appointment.roomUrl,
+    };
+
+    return res.status(200).json({ appointment: scoped });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -409,6 +449,74 @@ export async function updateAppointmentStatus(req: Request, res: Response) {
       data: { status: "COMPLETED" },
     });
     return res.status(200).json({ message: "Appointment completed", appointment: updated });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
+ * Send day-before reminder emails for upcoming ONLINE consultations — meant to be
+ * called by a scheduled job (e.g. a Render cron / GitHub Action) once per hour or
+ * day. Auth is a shared secret in the `x-cron-secret` header (CRON_SECRET env),
+ * NOT a user token, so it's mounted outside the user-auth middleware.
+ *
+ * It finds CONFIRMED ONLINE appointments that (a) have a video room, (b) start in
+ * the next 24 hours, (c) haven't already been reminded, and emails each patient
+ * their join link. reminderSentAt is stamped so a patient is never emailed twice.
+ */
+export async function sendAppointmentReminders(req: Request, res: Response) {
+  try {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.header("x-cron-secret") !== secret)
+      return res.status(401).json({ message: "Unauthorized" });
+
+    const now = new Date();
+    const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const due = await prisma.appointment.findMany({
+      where: {
+        mode: "ONLINE",
+        status: "CONFIRMED",
+        reminderSentAt: null,
+        roomUrl: { not: null },
+        scheduledAt: { gt: now, lte: in24h },
+      },
+      include: {
+        patient: { include: { profile: { select: { name: true, email: true } } } },
+        doctor: { include: { profile: { select: { name: true } } } },
+      },
+    });
+
+    let sent = 0;
+    for (const appt of due) {
+      const { subject, html, text } = buildReminderEmail({
+        patientName: appt.patient.profile.name,
+        doctorName: appt.doctor.profile.name,
+        scheduledAt: appt.scheduledAt,
+        roomUrl: appt.roomUrl!,
+      });
+      try {
+        const delivered = await sendMail({
+          to: appt.patient.profile.email,
+          subject,
+          html,
+          text,
+        });
+        // Only stamp if we actually sent (so a misconfigured SMTP retries later).
+        if (delivered) {
+          await prisma.appointment.update({
+            where: { id: appt.id },
+            data: { reminderSentAt: new Date() },
+          });
+          sent++;
+        }
+      } catch (err) {
+        console.error(`Reminder email failed for appointment ${appt.id}:`, err);
+      }
+    }
+
+    return res.status(200).json({ message: "Reminders processed", due: due.length, sent });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });

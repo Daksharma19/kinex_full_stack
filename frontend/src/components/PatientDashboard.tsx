@@ -91,6 +91,9 @@ export default function PatientDashboard() {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  // Set after a successful ONLINE booking so we can surface the patient's video
+  // join link right away (a confirmation banner with a "Join" button).
+  const [confirmedRoomUrl, setConfirmedRoomUrl] = useState<string | null>(null);
 
   // Profile snapshot
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -229,12 +232,20 @@ export default function PatientDashboard() {
         },
       });
 
-      // 3. Verify the payment — auto-confirms the appointment + locks the slot.
-      await verifyAppointmentPayment(appointment.id, result);
+      // 3. Verify the payment — auto-confirms the appointment + locks the slot,
+      //    and (for ONLINE) returns the appointment with its video join link.
+      const { appointment: confirmed } = await verifyAppointmentPayment(
+        appointment.id,
+        result
+      );
       createdId = null; // confirmed — nothing to release.
 
       setSelected(null);
       setShowBooking(false);
+      // Surface the video room link for online consultations.
+      if (confirmed.mode === "ONLINE" && confirmed.roomUrl) {
+        setConfirmedRoomUrl(confirmed.roomUrl);
+      }
       await loadAppointments();
       toast.success("Payment successful — appointment confirmed");
     } catch (err) {
@@ -359,6 +370,40 @@ export default function PatientDashboard() {
       </section>
 
       {error && <p className="text-sm text-error">{error}</p>}
+
+      {/* Post-booking banner: video room link for an online consultation. */}
+      {confirmedRoomUrl && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <span className="material-symbols-outlined text-primary">videocam</span>
+            <div>
+              <p className="font-bold text-on-surface">Your video consultation is booked</p>
+              <p className="text-sm text-on-surface-variant">
+                Use this link to join at your scheduled time. We'll also email you a
+                reminder a day before.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={confirmedRoomUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-primary-container text-on-primary px-4 py-2 rounded-lg font-bold text-sm hover:shadow-md transition-all whitespace-nowrap"
+            >
+              <span className="material-symbols-outlined text-base">video_call</span>
+              Join room
+            </a>
+            <button
+              onClick={() => setConfirmedRoomUrl(null)}
+              className="text-on-surface-variant hover:text-on-surface"
+              title="Dismiss"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-12 gap-8 items-start">
         {/* Left: booking + history */}
@@ -513,12 +558,25 @@ export default function PatientDashboard() {
                         </td>
                         <td className="py-4"><StatusBadge status={a.status} /></td>
                         <td className="py-4 text-right pr-4 rounded-r-xl">
-                          <span
-                            className="material-symbols-outlined text-primary-container align-middle"
-                            title={a.mode === "ONLINE" ? "Online consultation" : "Home visit"}
-                          >
-                            {a.mode === "ONLINE" ? "video_chat" : "home_health"}
-                          </span>
+                          <div className="flex items-center justify-end gap-2">
+                            {a.mode === "ONLINE" && a.status === "CONFIRMED" && a.roomUrl && (
+                              <a
+                                href={a.roomUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 bg-primary-container text-on-primary px-3 py-1.5 rounded-lg font-bold text-xs hover:shadow-md transition-all"
+                              >
+                                <span className="material-symbols-outlined text-sm">video_call</span>
+                                Join
+                              </a>
+                            )}
+                            <span
+                              className="material-symbols-outlined text-primary-container align-middle"
+                              title={a.mode === "ONLINE" ? "Online consultation" : "Home visit"}
+                            >
+                              {a.mode === "ONLINE" ? "video_chat" : "home_health"}
+                            </span>
+                          </div>
                         </td>
                       </tr>
                     ))}

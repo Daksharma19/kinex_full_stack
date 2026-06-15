@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes';
 import doctorRoutes from './routes/doctor.routes';
 import adminRoutes from './routes/admin.routes';
 import appointmentRouter from './routes/appointment.routes';
+import { sendAppointmentReminders } from './controllers/appointment.controller';
 
 
 const app = express();
@@ -32,6 +33,11 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/doctor', doctorRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/appointment', appointmentRouter);
+
+// Scheduled-job endpoint (no user auth — protected by the CRON_SECRET header).
+// Hit this hourly/daily from an external scheduler to send day-before video
+// consultation reminder emails to patients.
+app.post('/api/v1/cron/appointment-reminders', sendAppointmentReminders);
 
 
 
