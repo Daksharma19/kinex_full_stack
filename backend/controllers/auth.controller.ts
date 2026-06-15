@@ -1,6 +1,7 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db.ts";
 import { supabaseAdmin } from "../utils/supabase.ts";
+import { normalizePhoneOrThrow, sanitizeString } from "../utils/validation.ts";
 
 /**
  * Create the application profile for an already-authenticated Supabase user.
@@ -18,8 +19,15 @@ export async function createPatientProfile(req: Request, res: Response) {
     const authUser = req.user!;
 
     const { name, phone, address, dateOfBirth } = req.body;
-    if (!name) {
+    const cleanName = sanitizeString(name);
+    if (!cleanName) {
       return res.status(400).json({ message: "name is required" });
+    }
+    let cleanPhone: string | null;
+    try {
+      cleanPhone = normalizePhoneOrThrow(phone);
+    } catch (e) {
+      return res.status(400).json({ message: (e as Error).message });
     }
 
     const existing = await prisma.profile.findUnique({ where: { id: authUser.id } });
@@ -31,12 +39,12 @@ export async function createPatientProfile(req: Request, res: Response) {
       data: {
         id: authUser.id,
         email: authUser.email ?? "",
-        name,
+        name: cleanName,
         role: "PATIENT",
-        phone: phone || null,
+        phone: cleanPhone,
         patient: {
           create: {
-            address: address || null,
+            address: sanitizeString(address) || null,
             dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
           },
         },
@@ -69,13 +77,19 @@ export async function updateMyProfile(req: Request, res: Response) {
     const caller = req.profile!;
     const { name, phone, dateOfBirth, address, latitude, longitude } = req.body;
 
-    if (name !== undefined && !String(name).trim()) {
+    if (name !== undefined && !sanitizeString(name)) {
       return res.status(400).json({ message: "name cannot be empty" });
     }
 
     const data: Record<string, unknown> = {};
-    if (name !== undefined) data.name = String(name).trim();
-    if (phone !== undefined) data.phone = phone || null;
+    if (name !== undefined) data.name = sanitizeString(name);
+    if (phone !== undefined) {
+      try {
+        data.phone = normalizePhoneOrThrow(phone);
+      } catch (e) {
+        return res.status(400).json({ message: (e as Error).message });
+      }
+    }
 
     const patientFieldsTouched =
       dateOfBirth !== undefined ||
@@ -89,7 +103,7 @@ export async function updateMyProfile(req: Request, res: Response) {
           ...(dateOfBirth !== undefined
             ? { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null }
             : {}),
-          ...(address !== undefined ? { address: address || null } : {}),
+          ...(address !== undefined ? { address: sanitizeString(address) || null } : {}),
           // Coordinates: accept a number, or clear with null. Ignore anything
           // that isn't a finite number so a bad payload can't corrupt the row.
           ...(latitude !== undefined

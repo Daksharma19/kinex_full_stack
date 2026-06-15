@@ -5,6 +5,8 @@ import { supabase } from "../../lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import PasswordChecklist from "@/components/ui/PasswordChecklist";
+import { isStrongPassword } from "@/lib/validation";
 
 /**
  * Step 2 of password reset: the user arrives here from the recovery link. The
@@ -61,8 +63,8 @@ export default function ResetPasswordPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!isStrongPassword(password)) {
+      setError("Please choose a password that meets all the requirements below.");
       return;
     }
     if (password !== confirm) {
@@ -143,6 +145,7 @@ export default function ResetPasswordPage() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          <PasswordChecklist password={password} />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="confirm">Confirm new password</Label>

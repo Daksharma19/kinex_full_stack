@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { isValidPhone, sanitizePhone, sanitizeText } from "../lib/validation";
 
 // Leaflet is loaded globally from a CDN <script> in index.html.
 declare global {
@@ -52,7 +53,7 @@ function mergeAddress(a: typeof emptyAddress) {
     a.state,
     a.pincode,
   ]
-    .map((p) => p.trim())
+    .map((p) => sanitizeText(p))
     .filter(Boolean)
     .join(", ");
 }
@@ -65,7 +66,7 @@ export default function AddressLocationModal({
   onClose,
   onSave,
 }: Props) {
-  const [phone, setPhone] = useState(initialPhone);
+  const [phone, setPhone] = useState(sanitizePhone(initialPhone));
   const [addr, setAddr] = useState({ ...emptyAddress });
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -78,7 +79,7 @@ export default function AddressLocationModal({
   // Reset fields each time the modal is (re)opened.
   useEffect(() => {
     if (open) {
-      setPhone(initialPhone);
+      setPhone(sanitizePhone(initialPhone));
       setAddr({ ...emptyAddress });
       setCoords(null);
       setFormError(null);
@@ -155,8 +156,8 @@ export default function AddressLocationModal({
 
   function handleSave() {
     setFormError(null);
-    if (!phone.trim()) {
-      setFormError("Phone number is required.");
+    if (!isValidPhone(phone)) {
+      setFormError("Please enter a valid 10-digit mobile number.");
       return;
     }
     if (!addr.line1.trim() || !addr.city.trim() || !addr.pincode.trim()) {
@@ -164,7 +165,7 @@ export default function AddressLocationModal({
       return;
     }
     onSave({
-      phone: phone.trim(),
+      phone,
       address: mergeAddress(addr),
       latitude: coords?.lat ?? null,
       longitude: coords?.lng ?? null,
@@ -196,13 +197,20 @@ export default function AddressLocationModal({
         <div className="px-6 py-5 space-y-5">
           {/* Phone */}
           <Field label="Phone Number" required>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. +91 98765 43210"
-              className={INPUT_CLASS}
-            />
+            <div className="flex items-stretch">
+              <span className="inline-flex items-center rounded-l-lg border border-r-0 border-outline-variant/20 bg-surface-container-low px-3 text-sm text-on-surface-variant select-none">
+                +91
+              </span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                value={phone}
+                onChange={(e) => setPhone(sanitizePhone(e.target.value))}
+                placeholder="98765 43210"
+                className={`${INPUT_CLASS} rounded-l-none`}
+              />
+            </div>
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

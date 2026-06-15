@@ -16,6 +16,7 @@ import {
   type PaymentInvoice,
 } from "../lib/api";
 import { openRazorpayCheckout } from "../lib/razorpay";
+import { sanitizePhone } from "../lib/validation";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Button } from "@/components/ui/button";
@@ -718,7 +719,13 @@ export default function PatientDashboard() {
 
             <div className="space-y-4">
               <SnapField label="Full Name" value={form.name} onChange={(v) => handleFieldChange("name", v)} />
-              <SnapField label="Phone" value={form.phone} onChange={(v) => handleFieldChange("phone", v)} />
+              <SnapField
+                label="Phone"
+                value={form.phone}
+                prefix="+91"
+                placeholder="98765 43210"
+                onChange={(v) => handleFieldChange("phone", sanitizePhone(v))}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <SnapField label="Date of Birth" type="date" value={form.dateOfBirth} onChange={(v) => handleFieldChange("dateOfBirth", v)} />
                 <SnapField label="Address" value={form.address} onChange={(v) => handleFieldChange("address", v)} />
@@ -772,23 +779,37 @@ function SnapField({
   value,
   onChange,
   type = "text",
+  placeholder,
+  prefix,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  placeholder?: string;
+  prefix?: string;
 }) {
   return (
     <div>
       <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest block mb-1">
         {label}
       </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-surface-container-low border-none rounded-lg py-2.5 px-4 text-sm focus:ring-1 focus:ring-primary/30"
-      />
+      <div className="flex items-stretch">
+        {prefix && (
+          <span className="inline-flex items-center rounded-l-lg bg-surface-container px-3 text-sm text-on-surface-variant select-none">
+            {prefix}
+          </span>
+        )}
+        <input
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full bg-surface-container-low border-none py-2.5 px-4 text-sm focus:ring-1 focus:ring-primary/30 ${
+            prefix ? "rounded-r-lg" : "rounded-lg"
+          }`}
+        />
+      </div>
     </div>
   );
 }

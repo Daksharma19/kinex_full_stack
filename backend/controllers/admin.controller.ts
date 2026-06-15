@@ -1,6 +1,12 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db.ts";
 import { supabaseAdmin } from "../utils/supabase.ts";
+import {
+  isStrongPassword,
+  isValidEmail,
+  normalizePhoneOrThrow,
+  sanitizeString,
+} from "../utils/validation.ts";
 
 // All handlers here run behind requireAuth + requireProfile + requireRole("ADMIN"),
 // so req.profile is guaranteed to be an ADMIN.
@@ -204,12 +210,28 @@ export async function deleteUser(req: Request, res: Response) {
 export async function createAdmin(req: Request, res: Response) {
   try {
     const { email, password, name, phone } = req.body;
-    if (!email || !password || !name) {
+    const cleanName = sanitizeString(name);
+    if (!email || !password || !cleanName) {
       return res.status(400).json({ message: "email, password and name are required" });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Please provide a valid email address" });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 6 characters and include a letter, a number and a special character",
+      });
+    }
+    let cleanPhone: string | null;
+    try {
+      cleanPhone = normalizePhoneOrThrow(phone);
+    } catch (e) {
+      return res.status(400).json({ message: (e as Error).message });
     }
 
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: email.trim(),
       password,
       email_confirm: true,
     });
@@ -223,10 +245,10 @@ export async function createAdmin(req: Request, res: Response) {
     const profile = await prisma.profile.create({
       data: {
         id: data.user.id,
-        email,
-        name,
+        email: email.trim(),
+        name: cleanName,
         role: "ADMIN",
-        phone: phone || null,
+        phone: cleanPhone,
       },
     });
 
