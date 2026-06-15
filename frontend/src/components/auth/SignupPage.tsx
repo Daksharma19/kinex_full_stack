@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import GoogleButton from "./GoogleButton";
 import TermsCheckbox from "./TermsCheckbox";
 import VerifyOtpForm from "./VerifyOtpForm";
+import PasswordChecklist from "@/components/ui/PasswordChecklist";
+import { isStrongPassword, isValidEmail, sanitizeText } from "@/lib/validation";
 import { Eye, EyeOff } from "lucide-react";
 
 /**
@@ -35,15 +37,28 @@ export default function SignupPage() {
       setError("Please agree to the Terms & Conditions to continue.");
       return;
     }
+    const cleanName = sanitizeText(name);
+    if (!cleanName) {
+      setError("Please enter your full name.");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!isStrongPassword(password)) {
+      setError("Please choose a password that meets all the requirements below.");
+      return;
+    }
     setError(null);
     setLoading(true);
 
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
-          data: { full_name: name },
+          data: { full_name: cleanName },
         },
       });
       if (signUpError) throw signUpError;
@@ -102,6 +117,7 @@ export default function SignupPage() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          <PasswordChecklist password={password} />
         </div>
         <TermsCheckbox checked={agreed} onChange={setAgreed} />
         {error && <p className="text-sm text-red-600">{error}</p>}

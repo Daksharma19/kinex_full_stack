@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { isValidEmail, sanitizeText } from "@/lib/validation";
 
 const SUPPORT_EMAIL = "support@kinex.health";
 
@@ -32,10 +33,24 @@ export default function ContactPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
+  const [error, setError] = useState<string | null>(null);
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const subject = encodeURIComponent(`Support request from ${name || "a visitor"}`);
-    const body = encodeURIComponent(`${message}\n\n— ${name}${email ? ` (${email})` : ""}`);
+    const cleanName = sanitizeText(name);
+    const cleanEmail = email.trim();
+    const cleanMessage = message.trim();
+    if (!cleanName || !cleanMessage) {
+      setError("Please enter your name and a message.");
+      return;
+    }
+    if (!isValidEmail(cleanEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    setError(null);
+    const subject = encodeURIComponent(`Support request from ${cleanName || "a visitor"}`);
+    const body = encodeURIComponent(`${cleanMessage}\n\n— ${cleanName} (${cleanEmail})`);
     window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
   }
 
@@ -66,6 +81,7 @@ export default function ContactPage() {
             <Label htmlFor="message">How can we help?</Label>
             <Textarea id="message" required rows={5} value={message} onChange={(e) => setMessage(e.target.value)} />
           </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" className="self-start">Send message</Button>
           <p className="text-xs text-on-surface-variant">
             This opens your email app addressed to {SUPPORT_EMAIL}.

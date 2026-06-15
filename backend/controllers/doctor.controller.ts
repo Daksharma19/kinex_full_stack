@@ -1,6 +1,7 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db.ts";
 import { supabaseAdmin } from "../utils/supabase.ts";
+import { normalizePhoneOrThrow, sanitizeString } from "../utils/validation.ts";
 
 /**
  * Apply as a doctor. Signup happens on the frontend via supabase.auth.signUp()
@@ -15,8 +16,17 @@ export async function applyAsDoctor(req: Request, res: Response) {
     const authUser = req.user!;
 
     const { name, phone, specialization, licenseNumber } = req.body;
-    if (!name || !specialization || !licenseNumber) {
+    const cleanName = sanitizeString(name);
+    const cleanSpecialization = sanitizeString(specialization);
+    const cleanLicense = sanitizeString(licenseNumber);
+    if (!cleanName || !cleanSpecialization || !cleanLicense) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+    let cleanPhone: string | null;
+    try {
+      cleanPhone = normalizePhoneOrThrow(phone);
+    } catch (e) {
+      return res.status(400).json({ message: (e as Error).message });
     }
 
     const existing = await prisma.profile.findUnique({ where: { id: authUser.id } });
@@ -28,13 +38,13 @@ export async function applyAsDoctor(req: Request, res: Response) {
       data: {
         id: authUser.id,
         email: authUser.email ?? "",
-        name,
+        name: cleanName,
         role: "DOCTOR",
-        phone: phone || null,
+        phone: cleanPhone,
         doctor: {
           create: {
-            specialization,
-            licenseNumber,
+            specialization: cleanSpecialization,
+            licenseNumber: cleanLicense,
           },
         },
       },
@@ -63,8 +73,16 @@ export async function updateMyDoctorProfile(req: Request, res: Response) {
     const profileId = req.profile!.id;
     const { name, phone, specialization, consultationFee } = req.body;
 
-    if (name !== undefined && !String(name).trim()) {
+    if (name !== undefined && !sanitizeString(name)) {
       return res.status(400).json({ message: "name cannot be empty" });
+    }
+    let phoneUpdate: string | null | undefined;
+    if (phone !== undefined) {
+      try {
+        phoneUpdate = normalizePhoneOrThrow(phone);
+      } catch (e) {
+        return res.status(400).json({ message: (e as Error).message });
+      }
     }
 
     // Consultation fee: whole rupees, non-negative. Empty/null clears it.
@@ -84,15 +102,15 @@ export async function updateMyDoctorProfile(req: Request, res: Response) {
     }
 
     const doctorUpdate = {
-      ...(specialization !== undefined ? { specialization } : {}),
+      ...(specialization !== undefined ? { specialization: sanitizeString(specialization) } : {}),
       ...(feeValue !== undefined ? { consultationFee: feeValue } : {}),
     };
 
     const profile = await prisma.profile.update({
       where: { id: profileId },
       data: {
-        ...(name !== undefined ? { name: String(name).trim() } : {}),
-        ...(phone !== undefined ? { phone: phone || null } : {}),
+        ...(name !== undefined ? { name: sanitizeString(name) } : {}),
+        ...(phone !== undefined ? { phone: phoneUpdate } : {}),
         ...(Object.keys(doctorUpdate).length > 0
           ? { doctor: { update: doctorUpdate } }
           : {}),

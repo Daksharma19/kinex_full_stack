@@ -10,6 +10,7 @@ import {
   type Appointment,
   type TimeSlot,
 } from "../lib/api";
+import { isValidPhone, sanitizePhone, sanitizeText } from "../lib/validation";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import StatusBadge from "./StatusBadge";
@@ -124,12 +125,20 @@ export default function DoctorDashboard() {
   }
 
   async function saveProfile() {
+    if (!sanitizeText(form.name)) {
+      setProfileError("Name cannot be empty.");
+      return;
+    }
+    if (form.phone && !isValidPhone(form.phone)) {
+      setProfileError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
     setSavingProfile(true);
     setProfileError(null);
     try {
       const fee = form.consultationFee.trim();
       await updateDoctorProfile({
-        name: form.name,
+        name: sanitizeText(form.name),
         phone: form.phone,
         specialization: form.specialization,
         consultationFee: fee === "" ? null : Number(fee),
@@ -488,7 +497,13 @@ export default function DoctorDashboard() {
             {editing ? (
               <div className="space-y-4">
                 <EditField label="Full Name" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} />
-                <EditField label="Phone" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
+                <EditField
+                  label="Phone"
+                  value={form.phone}
+                  prefix="+91"
+                  placeholder="98765 43210"
+                  onChange={(v) => setForm((f) => ({ ...f, phone: sanitizePhone(v) }))}
+                />
                 <EditField
                   label="Specialization"
                   value={form.specialization}
@@ -724,21 +739,35 @@ function EditField({
   label,
   value,
   onChange,
+  placeholder,
+  prefix,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  placeholder?: string;
+  prefix?: string;
 }) {
   return (
     <div>
       <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
         {label}
       </p>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/30 text-on-surface font-medium text-sm px-3 py-2"
-      />
+      <div className="flex items-stretch">
+        {prefix && (
+          <span className="inline-flex items-center rounded-l-xl bg-surface-container px-3 text-sm text-on-surface-variant select-none">
+            {prefix}
+          </span>
+        )}
+        <input
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full bg-surface-container-low border-none focus:ring-2 focus:ring-primary/30 text-on-surface font-medium text-sm px-3 py-2 ${
+            prefix ? "rounded-r-xl" : "rounded-xl"
+          }`}
+        />
+      </div>
     </div>
   );
 }

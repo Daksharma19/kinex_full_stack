@@ -8,6 +8,9 @@ import VerifyOtpForm from "./VerifyOtpForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import PasswordChecklist from "@/components/ui/PasswordChecklist";
+import { isStrongPassword, isValidEmail, isValidPhone, sanitizeText } from "@/lib/validation";
 import { Eye, EyeOff } from "lucide-react";
 
 /**
@@ -45,9 +48,9 @@ export default function DoctorApplyPage() {
   /** Doctor details (no email/password) — used by both the email and Google paths. */
   function doctorDetails(): DoctorDetails {
     return {
-      name: form.name,
-      specialization: form.specialization,
-      licenseNumber: form.licenseNumber,
+      name: sanitizeText(form.name),
+      specialization: sanitizeText(form.specialization),
+      licenseNumber: sanitizeText(form.licenseNumber),
       phone: form.phone || undefined,
     };
   }
@@ -56,6 +59,22 @@ export default function DoctorApplyPage() {
     e.preventDefault();
     if (!agreed) {
       setError("Please agree to the Terms & Conditions to continue.");
+      return;
+    }
+    if (!sanitizeText(form.name) || !sanitizeText(form.specialization) || !sanitizeText(form.licenseNumber)) {
+      setError("Please fill in your name, specialization and license number.");
+      return;
+    }
+    if (form.phone && !isValidPhone(form.phone)) {
+      setError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    if (!isValidEmail(form.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!isStrongPassword(form.password)) {
+      setError("Please choose a password that meets all the requirements below.");
       return;
     }
     setError(null);
@@ -68,7 +87,7 @@ export default function DoctorApplyPage() {
         JSON.stringify(doctorDetails())
       );
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email: form.email,
+        email: form.email.trim(),
         password: form.password,
         options: {
           // Also stamp the application into user_metadata so AuthContext can
@@ -144,7 +163,11 @@ export default function DoctorApplyPage() {
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="phone">Phone (optional)</Label>
-          <Input id="phone" value={form.phone} onChange={set("phone")} />
+          <PhoneInput
+            id="phone"
+            value={form.phone}
+            onValueChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+          />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="email">Email</Label>
@@ -171,7 +194,7 @@ export default function DoctorApplyPage() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-
+          <PasswordChecklist password={form.password} />
         </div>
 
         <TermsCheckbox checked={agreed} onChange={setAgreed} />
