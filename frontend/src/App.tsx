@@ -14,6 +14,7 @@ import ResetPasswordPage from "./components/auth/ResetPasswordPage";
 import TermsPage from "./components/TermsPage";
 import ServicesPage from "./components/ServicesPage";
 import ServiceDetailPage from "./components/ServiceDetailPage";
+import ProductsPage from "./components/ProductsPage";
 import PrivacyPage from "./components/PrivacyPage";
 import ContactPage from "./components/ContactPage";
 import Dashboard from "./components/Dashboard";
@@ -41,6 +42,7 @@ export function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/services/:id" element={<ServiceDetailPage />} />
+          <Route path="/products" element={<ProductsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/contact" element={<ContactPage />} />
             <Route

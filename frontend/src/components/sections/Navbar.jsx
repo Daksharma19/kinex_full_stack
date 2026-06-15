@@ -6,6 +6,7 @@ import LOGO from "../../../assets/images/logo.png";
 const NAV_ITEMS = [
   { label: "Home", to: "/", end: true },
   { label: "Services", to: "/services" },
+  { label: "Products", to: "/products" },
   { label: "Contact Us", to: "/contact" },
 ];
 
