@@ -140,6 +140,68 @@ export default function TermsPage() {
           </p>
         </section>
 
+        <section className="border-t border-outline-variant/20 pt-8">
+          <h2 className="text-xl font-bold mb-4 text-primary">
+            Additional Terms for Practitioner Applicants
+          </h2>
+          <p className="text-on-surface-variant mb-6">
+            The following terms apply to medical and physiotherapy professionals who
+            apply to join Kinex Wellness &amp; Rehab through the recruitment portal.
+          </p>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-bold mb-2">Accuracy of Submissions</h3>
+              <p className="text-on-surface-variant">
+                The applicant accepts full responsibility for the authenticity of the
+                resumes, certificates, and identification documents uploaded. Any
+                falsified information will result in immediate disqualification or
+                termination if hired.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold mb-2">Credential Verification</h3>
+              <p className="text-on-surface-variant">
+                Kinex Wellness reserves the right to contact the respective licensing
+                boards (e.g. Medical Council, Physiotherapy Council) to verify the
+                standing of the applicant's license and check for any history of
+                malpractice or disciplinary action.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold mb-2">Data Protection &amp; Privacy</h3>
+              <p className="text-on-surface-variant">
+                All personal data, CVs, and contact information submitted through this
+                portal will be kept strictly confidential. Kinex Wellness will not
+                share, sell, or distribute applicant data to third-party agencies
+                without explicit consent.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold mb-2">Communication Consent</h3>
+              <p className="text-on-surface-variant">
+                By submitting this form, the applicant agrees to receive
+                communications (via email) regarding their application status,
+                interview schedules, and future career opportunities at Kinex Wellness
+                &amp; Rehab.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold mb-2">Document Retention</h3>
+              <p className="text-on-surface-variant">
+                Applications and uploaded documents may be retained in the Kinex
+                Wellness database for up to 12 months for future openings, even if the
+                current application is unsuccessful. Applicants may request data
+                deletion by contacting the clinic directly.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <p className="text-xs text-on-surface-variant/70 border-t border-outline-variant/20 pt-6">
           This document is a general template provided for convenience and does not
           constitute legal advice. It should be reviewed and adapted by qualified

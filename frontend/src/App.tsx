@@ -17,6 +17,7 @@ import ServiceDetailPage from "./components/ServiceDetailPage";
 import PrivacyPage from "./components/PrivacyPage";
 import ContactPage from "./components/ContactPage";
 import Dashboard from "./components/Dashboard";
+import NotFoundPage from "./components/NotFoundPage";
 
 /**
  * App shell: a single AuthProvider owns auth state for everything below it, and
@@ -50,6 +51,7 @@ export function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

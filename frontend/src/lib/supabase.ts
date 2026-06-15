@@ -9,9 +9,10 @@ import { config } from "./config";
  * drift out of sync (the classic "logged in over here, logged out over there"
  * bug).
  *
- * Unlike the backend client (which is stateless and only verifies tokens), this
- * one persists the session to localStorage and auto-refreshes the access token
- * so the user stays logged in across reloads.
+ * Persists the session to localStorage and auto-refreshes the access token, so
+ * the user stays logged in across reloads, tab reopens, and multiple tabs.
+ * An idle timeout (see AuthContext) signs the user out after a period of
+ * inactivity so the session doesn't persist indefinitely.
  */
 export const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
   auth: {

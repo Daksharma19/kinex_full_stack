@@ -26,9 +26,9 @@ export default function Hero() {
         <div className="max-w-2xl text-white">
           
           <h1 className="text-5xl md:text-7xl font-headline font-extrabold tracking-tight mb-8 leading-[1.1]">
-            The Sanctuary of{" "}
-            <span className="text-primary-fixed">Modern Clinical</span>{" "}
-            Excellence.
+            Welcome to the{" "}
+            <span className="text-primary-fixed">Future of Your</span>{" "}
+            Recovery
           </h1>
           <p className="text-lg md:text-xl text-on-primary-container font-light leading-relaxed mb-10 opacity-90">
             Kinex integrates world-class medical expertise with a

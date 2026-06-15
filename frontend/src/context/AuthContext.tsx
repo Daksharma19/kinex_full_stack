@@ -36,6 +36,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// Auto-logout after this much inactivity. Shared across tabs via localStorage,
+// so activity in any tab keeps every tab's session alive.
+const IDLE_LIMIT_MS = 60 * 60 * 1000; // 1 hour
+const LAST_ACTIVITY_KEY = "kinex.lastActivity";
+
+const readLastActivity = () => Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0);
+const markActivity = () => localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+const clearActivity = () => localStorage.removeItem(LAST_ACTIVITY_KEY);
+
 /**
  * Single owner of auth state for the whole frontend. Wraps the app once (see
  * App.tsx). Subscribes to the shared supabase client's auth changes so login,
@@ -111,6 +120,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // 1. Hydrate from any persisted session on first load.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      // Enforce the idle timeout: if a persisted session has been idle longer
+      // than the limit, sign out instead of silently restoring it.
+      if (session) {
+        const last = readLastActivity();
+        if (last && Date.now() - last > IDLE_LIMIT_MS) {
+          clearActivity();
+          await supabase.auth.signOut();
+          setSession(null);
+          setLoading(false);
+          return;
+        }
+        markActivity(); // seed/refresh for pre-existing sessions
+      }
       setSession(session);
       await loadProfile(session);
       setLoading(false);
@@ -128,6 +150,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // While logged in, track activity and enforce the idle timeout.
+  useEffect(() => {
+    if (!session) return;
+    markActivity();
+
+    let lastStamp = Date.now();
+    const onActivity = () => {
+      const now = Date.now();
+      // Throttle localStorage writes to once per 30s.
+      if (now - lastStamp > 30_000) {
+        lastStamp = now;
+        markActivity();
+      }
+    };
+    const events = ["pointerdown", "keydown", "scroll", "visibilitychange"];
+    events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
+
+    const interval = setInterval(() => {
+      const last = readLastActivity();
+      if (last && Date.now() - last > IDLE_LIMIT_MS) {
+        clearActivity();
+        void supabase.auth.signOut(); // propagates to all tabs via onAuthStateChange
+      }
+    }, 60_000);
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, onActivity));
+      clearInterval(interval);
+    };
+  }, [session]);
+
   const value: AuthContextValue = {
     session,
     user: session?.user ?? null,
@@ -135,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     profileLoading,
     signOut: async () => {
+      clearActivity();
       await supabase.auth.signOut();
     },
     refreshProfile: () => loadProfile(session),

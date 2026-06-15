@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" role="img" aria-label="Apologetic doctor holding a notepad">
+  <!-- soft backdrop -->
+  <circle cx="120" cy="120" r="116" fill="#E8F1F0"/>
+  <circle cx="120" cy="120" r="116" stroke="#CFE3E0" stroke-width="2"/>
+
+  <!-- shadow -->
+  <ellipse cx="120" cy="210" rx="64" ry="10" fill="#000" opacity="0.06"/>
+
+  <!-- body / white coat -->
+  <path d="M70 230c0-34 14-58 50-58s50 24 50 58H70z" fill="#FFFFFF" stroke="#D5DDE0" stroke-width="2"/>
+  <!-- coat lapels -->
+  <path d="M120 174l-16 56h6l12-44 12 44h6l-16-56z" fill="#EEF3F4"/>
+  <!-- stethoscope -->
+  <path d="M104 176c-10 6-12 22-12 30" stroke="#3A7D78" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M136 176c10 6 12 22 12 30" stroke="#3A7D78" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="148" cy="208" r="6" fill="#3A7D78"/>
+
+  <!-- neck -->
+  <rect x="112" y="150" width="16" height="20" rx="6" fill="#E8B68F"/>
+
+  <!-- head -->
+  <circle cx="120" cy="120" r="36" fill="#F2C19B"/>
+  <!-- hair -->
+  <path d="M84 116c0-22 16-38 36-38s36 16 36 38c-6-12-20-16-36-16s-30 4-36 16z" fill="#5A4636"/>
+
+  <!-- guilty eyes (looking down/away, raised brows) -->
+  <path d="M101 112q6-5 12 0" stroke="#5A4636" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M127 112q6-5 12 0" stroke="#5A4636" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="108" cy="120" r="3" fill="#3B2F26"/>
+  <circle cx="133" cy="120" r="3" fill="#3B2F26"/>
+  <!-- blush of embarrassment -->
+  <circle cx="100" cy="130" r="6" fill="#F0A07F" opacity="0.5"/>
+  <circle cx="140" cy="130" r="6" fill="#F0A07F" opacity="0.5"/>
+  <!-- awkward apologetic mouth -->
+  <path d="M110 138q10 8 20 0" stroke="#9A5B43" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- sweat drop -->
+  <path d="M152 104c0 4-3 7-5 7s-5-3-5-7 5-9 5-9 5 5 5 9z" fill="#7FC4E8"/>
+
+  <!-- notepad held to chest -->
+  <g transform="rotate(-8 92 196)">
+    <rect x="64" y="172" width="56" height="46" rx="4" fill="#FFFFFF" stroke="#C7CDD1" stroke-width="2"/>
+    <rect x="64" y="172" width="56" height="10" rx="4" fill="#3A7D78"/>
+    <line x1="72" y1="192" x2="112" y2="192" stroke="#D7DCDF" stroke-width="3" stroke-linecap="round"/>
+    <line x1="72" y1="200" x2="112" y2="200" stroke="#D7DCDF" stroke-width="3" stroke-linecap="round"/>
+    <line x1="72" y1="208" x2="98" y2="208" stroke="#D7DCDF" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- hands holding notepad -->
+  <circle cx="66" cy="200" r="9" fill="#F2C19B"/>
+  <circle cx="120" cy="206" r="9" fill="#F2C19B"/>
+</svg>
