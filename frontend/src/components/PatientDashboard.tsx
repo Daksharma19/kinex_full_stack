@@ -12,6 +12,8 @@ import {
   type Appointment,
   type AppointmentMode,
   type TimeSlot,
+  type PaymentOrder,
+  type PaymentInvoice,
 } from "../lib/api";
 import { openRazorpayCheckout } from "../lib/razorpay";
 import { useAuth } from "../context/AuthContext";
@@ -92,6 +94,14 @@ export default function PatientDashboard() {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  // After "Proceed to Payment": the started (PENDING) booking + its invoice +
+  // Razorpay order. While set, the invoice screen is shown with a final Pay btn.
+  const [pending, setPending] = useState<{
+    appointment: Appointment;
+    payment: PaymentOrder;
+    invoice: PaymentInvoice;
+  } | null>(null);
+  const [paying, setPaying] = useState(false);
   // Set after a successful ONLINE booking so we can surface the patient's video
   // join link right away (a confirmation banner with a "Join" button).
   const [confirmedRoomUrl, setConfirmedRoomUrl] = useState<string | null>(null);
@@ -141,7 +151,20 @@ export default function PatientDashboard() {
     });
   }, [profile, patient]);
 
+  // Release a started-but-unpaid booking (best effort) so its slot frees up.
+  async function releasePending() {
+    if (!pending) return;
+    const apptId = pending.appointment.id;
+    setPending(null);
+    try {
+      await releaseAppointment(apptId);
+    } catch {
+      /* ignore */
+    }
+  }
+
   async function openBooking(d: VerifiedDoctor) {
+    await releasePending(); // discard any prior unpaid hold before switching
     setSelected(d);
     setMode("ONLINE");
     setNotes("");
@@ -163,6 +186,7 @@ export default function PatientDashboard() {
   // details first, otherwise just toggle the booking panel.
   function handleBookClick() {
     if (showBooking) {
+      void releasePending(); // free any unpaid hold when closing the panel
       setShowBooking(false);
       return;
     }
@@ -198,7 +222,9 @@ export default function PatientDashboard() {
     }
   }
 
-  async function confirmBooking() {
+  // Step 1: reserve the slot + create the PENDING booking and Razorpay order,
+  // then show the itemized invoice. Payment happens on the invoice screen.
+  async function startBooking() {
     if (!selected) return;
     if (!selectedSlotId) {
       setError("Pick an available time slot.");
@@ -210,20 +236,38 @@ export default function PatientDashboard() {
     }
     setBooking(true);
     setError(null);
-    // Track the pending appointment so we can release its slot if payment is
-    // abandoned (popup dismissed) or fails.
-    let createdId: string | null = null;
     try {
-      // 1. Start the booking — creates a PENDING appointment + Razorpay order.
-      const { appointment, payment } = await bookAppointment({
+      const { appointment, payment, invoice } = await bookAppointment({
         slotId: selectedSlotId,
         mode,
         notes: notes || undefined,
       });
-      createdId = appointment.id;
+      setPending({ appointment, payment, invoice });
+    } catch (err) {
+      const msg = (err as Error).message || "Could not start the booking";
+      setError(msg);
+      toast.error(msg);
+      // Refresh slots in case the chosen one was just taken.
+      try {
+        const { slots } = await listDoctorSlots(selected.id);
+        setSlots(slots);
+        setSelectedSlotId(null);
+      } catch {
+        /* ignore */
+      }
+    } finally {
+      setBooking(false);
+    }
+  }
 
-      // 2. Open Razorpay checkout and wait for the success payload.
-      const result = await openRazorpayCheckout(payment, {
+  // Step 2: open Razorpay for the started booking, verify, and confirm.
+  async function payNow() {
+    if (!pending || !selected) return;
+    setPaying(true);
+    setError(null);
+    const apptId = pending.appointment.id;
+    try {
+      const result = await openRazorpayCheckout(pending.payment, {
         name: "Kinex Healthcare",
         description: `Consultation with Dr. ${selected.profile.name}`,
         prefill: {
@@ -233,47 +277,46 @@ export default function PatientDashboard() {
         },
       });
 
-      // 3. Verify the payment — auto-confirms the appointment + locks the slot,
-      //    and (for ONLINE) returns the appointment with its video join link.
-      const { appointment: confirmed } = await verifyAppointmentPayment(
-        appointment.id,
-        result
-      );
-      createdId = null; // confirmed — nothing to release.
+      // Verify → auto-confirms the appointment + locks the slot (and for ONLINE
+      // returns the appointment with its video join link).
+      const { appointment: confirmed } = await verifyAppointmentPayment(apptId, result);
 
+      setPending(null);
       setSelected(null);
       setShowBooking(false);
-      // Surface the video room link for online consultations.
       if (confirmed.mode === "ONLINE" && confirmed.roomUrl) {
         setConfirmedRoomUrl(confirmed.roomUrl);
       }
       await loadAppointments();
       toast.success("Payment successful — appointment confirmed");
     } catch (err) {
-      const msg = (err as Error).message || "Could not complete the booking";
+      const msg = (err as Error).message || "Could not complete the payment";
       setError(msg);
       toast.error(msg);
-      // Release the unpaid hold (best effort) so the slot frees up. Harmless if
-      // the server already cancelled it on a failed verification.
-      if (createdId) {
-        try {
-          await releaseAppointment(createdId);
-        } catch {
-          /* ignore */
-        }
-      }
-      // Refresh slots so the freed slot reappears.
-      if (selected) {
-        try {
-          const { slots } = await listDoctorSlots(selected.id);
-          setSlots(slots);
-          setSelectedSlotId(null);
-        } catch {
-          /* ignore */
-        }
-      }
     } finally {
-      setBooking(false);
+      setPaying(false);
+    }
+  }
+
+  // Abandon the started booking from the invoice screen: release the hold so the
+  // slot frees up, then return to slot selection.
+  async function cancelInvoice() {
+    if (!pending) return;
+    const apptId = pending.appointment.id;
+    setPending(null);
+    try {
+      await releaseAppointment(apptId);
+    } catch {
+      /* ignore — may already be cancelled server-side */
+    }
+    if (selected) {
+      try {
+        const { slots } = await listDoctorSlots(selected.id);
+        setSlots(slots);
+        setSelectedSlotId(null);
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -435,7 +478,7 @@ export default function PatientDashboard() {
                 </div>
               )}
 
-              {selected && (
+              {selected && !pending && (
                 <div className="rounded-xl border border-primary/20 p-6 bg-primary/5 flex flex-col gap-4 max-w-md">
                   <h4 className="font-bold text-on-surface">Book with {selected.profile.name}</h4>
                   {selected.consultationFee != null && (
@@ -502,14 +545,71 @@ export default function PatientDashboard() {
                     <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
                   </div>
                   <div className="flex gap-3">
-                    <Button onClick={confirmBooking} disabled={booking || !selectedSlotId}>
-                      {booking
-                        ? "Processing…"
-                        : selected.consultationFee != null
-                          ? `Pay ₹${selected.consultationFee} & Confirm`
-                          : "Confirm booking"}
+                    <Button onClick={startBooking} disabled={booking || !selectedSlotId}>
+                      {booking ? "Processing…" : "Proceed to Payment"}
                     </Button>
                     <Button variant="secondary" onClick={() => setSelected(null)} disabled={booking}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Invoice / payment screen — shown after "Proceed to Payment". */}
+              {selected && pending && (
+                <div className="rounded-xl border border-primary/20 p-6 bg-primary/5 flex flex-col gap-4 max-w-md">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">receipt_long</span>
+                    <h4 className="font-bold text-on-surface">Payment summary</h4>
+                  </div>
+                  <p className="text-sm text-on-surface-variant">
+                    Consultation with Dr. {selected.profile.name}
+                    {pending.appointment.scheduledAt && (
+                      <>
+                        {" · "}
+                        {new Date(pending.appointment.scheduledAt).toLocaleString(undefined, {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </>
+                    )}
+                  </p>
+
+                  <div className="rounded-lg bg-surface-container-lowest border border-outline-variant/10 divide-y divide-outline-variant/10 text-sm">
+                    <InvoiceRow
+                      label="Doctor consultation fee"
+                      hint="Healthcare service — GST exempt"
+                      value={pending.invoice.consultationFee}
+                    />
+                    <InvoiceRow
+                      label={`Payment gateway fee (${pending.invoice.gatewayFeePercent}%)`}
+                      value={pending.invoice.gatewayFee}
+                    />
+                    <InvoiceRow
+                      label={`GST (${pending.invoice.gstPercent}% on gateway fee)`}
+                      value={pending.invoice.gst}
+                    />
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="font-bold text-on-surface">Total payable</span>
+                      <span className="font-black text-on-surface">
+                        ₹{pending.invoice.total.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-on-surface-variant">
+                    This is a temporary itemized invoice. The total above is what
+                    will be charged via Razorpay.
+                  </p>
+
+                  <div className="flex gap-3">
+                    <Button onClick={payNow} disabled={paying}>
+                      {paying ? "Processing…" : `Pay ₹${pending.invoice.total.toFixed(2)}`}
+                    </Button>
+                    <Button variant="secondary" onClick={cancelInvoice} disabled={paying}>
+                      Cancel
+                    </Button>
                   </div>
                 </div>
               )}
@@ -643,6 +743,26 @@ export default function PatientDashboard() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function InvoiceRow({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between px-4 py-2.5">
+      <div>
+        <p className="text-on-surface">{label}</p>
+        {hint && <p className="text-[10px] text-on-surface-variant">{hint}</p>}
+      </div>
+      <span className="text-on-surface font-medium">₹{value.toFixed(2)}</span>
     </div>
   );
 }

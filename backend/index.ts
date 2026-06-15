@@ -38,6 +38,15 @@ app.post(
 // Larger limit so base64 profile-photo uploads fit.
 app.use(express.json({ limit: "8mb" }));
 
+// API responses are dynamic and per-user — never cache them. Express adds an
+// ETag but no Cache-Control, so browsers apply heuristic freshness and can serve
+// a stale list (e.g. an appointment still showing after an admin deleted it).
+// no-store forces a fresh fetch every time.
+app.use('/api', (_req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 // handling routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/doctor', doctorRoutes);

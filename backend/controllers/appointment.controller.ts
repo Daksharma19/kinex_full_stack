@@ -9,6 +9,7 @@ import {
 } from "../utils/razorpay";
 import { createWherebyMeeting } from "../utils/whereby";
 import { buildReminderEmail, sendMail } from "../utils/email";
+import { computeBreakdown } from "../utils/pricing";
 
 const VALID_MODE = ["ONLINE", "HOME_VISIT"];
 
@@ -57,7 +58,10 @@ export async function createAppointment(req: Request, res: Response) {
       return res
         .status(400)
         .json({ message: "This doctor has not set a consultation fee yet" });
-    const amountPaise = fee * 100;
+    // Patient pays consultation + gateway fee + GST-on-gateway-fee. Computed
+    // server-side so the charged amount always matches the displayed invoice.
+    const invoice = computeBreakdown(fee);
+    const amountPaise = invoice.totalPaise;
 
     // Atomically reserve the slot. If another booking won the race, count is 0.
     const reserved = await prisma.timeSlot.updateMany({
@@ -86,6 +90,8 @@ export async function createAppointment(req: Request, res: Response) {
         data: {
           appointmentId: appointment.id,
           amountPaise: BigInt(amountPaise),
+          // Doctor's net earning (consultation only, excludes gateway fee + GST).
+          consultationPaise: BigInt(Math.round(invoice.consultationFee * 100)),
           gatewayOrderId: order.id,
           status: "PENDING",
         },
@@ -100,6 +106,7 @@ export async function createAppointment(req: Request, res: Response) {
           currency: "INR",
           keyId: razorpayKeyId,
         },
+        invoice,
       });
     } catch (inner) {
       // Roll back the reservation so the slot is bookable again.
@@ -238,12 +245,13 @@ export async function listMyAppointments(req: Request, res: Response) {
           include: { profile: { select: { name: true, email: true, phone: true } } },
         },
         doctor: { include: { profile: { select: { name: true, email: true } } } },
-        payment: { select: { status: true, amountPaise: true } },
+        payment: { select: { status: true, amountPaise: true, consultationPaise: true } },
       },
       orderBy: { scheduledAt: "desc" },
     });
 
-    // Convert the payment's BigInt amount (paise) to a JSON-safe rupee number.
+    // Convert the payment's BigInt amounts (paise) to JSON-safe rupee numbers:
+    // `amount` = total charged, `consultation` = the doctor's net earning.
     // Scope the video links by role: a patient only gets their roomUrl, a doctor
     // only gets the host link — never expose the other party's join URL.
     const isDoctor = caller.role === "DOCTOR";
@@ -252,7 +260,14 @@ export async function listMyAppointments(req: Request, res: Response) {
       hostRoomUrl: isDoctor ? a.hostRoomUrl : null,
       roomUrl: isDoctor ? null : a.roomUrl,
       payment: a.payment
-        ? { status: a.payment.status, amount: Number(a.payment.amountPaise) / 100 }
+        ? {
+            status: a.payment.status,
+            amount: Number(a.payment.amountPaise) / 100,
+            consultation:
+              a.payment.consultationPaise != null
+                ? Number(a.payment.consultationPaise) / 100
+                : null,
+          }
         : null,
     }));
 

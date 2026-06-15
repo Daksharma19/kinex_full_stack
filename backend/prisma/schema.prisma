@@ -157,6 +157,9 @@ model Payment {
   id               String        @id @default(uuid())
   appointmentId    String        @unique @map("appointment_id")
   amountPaise      BigInt        @map("amount_paise")
+  // The doctor's net consultation earning (excludes gateway fee + GST, which go
+  // to the gateway/govt). Null for pre-existing rows. amountPaise = total charged.
+  consultationPaise BigInt?      @map("consultation_paise")
   gatewayOrderId   String?       @map("gateway_order_id")
   gatewayPaymentId String?       @map("gateway_payment_id")
   status           PaymentStatus @default(PENDING)

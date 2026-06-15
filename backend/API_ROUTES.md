@@ -135,8 +135,12 @@ appointment is only confirmed once payment is verified. The doctor must have a
 consultation fee set.
 - **Auth:** Bearer Supabase token — `PATIENT` only
 - **Body:** `{ slotId, mode: "ONLINE" | "HOME_VISIT", notes? }`
-- **Returns:** `201` — `{ message, appointment, payment: { orderId, amount, currency, keyId } }`
+- **Returns:** `201` — `{ message, appointment, payment: { orderId, amount, currency, keyId }, invoice }`
   · `409` if the slot was just taken · `503` if Razorpay is not configured
+- **`invoice`** itemizes the charge (rupees): `{ consultationFee, gatewayFeePercent (2),
+  gatewayFee, gstPercent (18), gst, total, totalPaise }`. The doctor's consultation
+  fee is GST-exempt (healthcare); the 2% gateway fee + 18% GST-on-that-fee are added,
+  and `amount`/`totalPaise` (what Razorpay charges) = the invoice total.
 
 ### `POST /api/v1/appointment/payment/webhook`
 **Public** Razorpay webhook receiver (server-to-server; no auth). Verifies the
