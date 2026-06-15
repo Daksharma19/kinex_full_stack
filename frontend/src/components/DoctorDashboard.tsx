@@ -247,14 +247,19 @@ export default function DoctorDashboard() {
     const upcoming = sorted.filter(
       (a) => new Date(a.scheduledAt) > now && !isSameDay(new Date(a.scheduledAt), now)
     );
-    // Payments collected = appointments with a VERIFIED (paid) payment.
+    // Payments collected = appointments with a VERIFIED (paid) payment. Revenue
+    // counts only the doctor's consultation earning (gateway fee + GST go to the
+    // gateway/govt, not the doctor); fall back to total for legacy rows.
     const paid = appointments.filter((a) => a.payment?.status === "VERIFIED");
     const stats = {
       total: appointments.length,
       pending: appointments.filter((a) => a.status === "PENDING").length,
       completed: appointments.filter((a) => a.status === "COMPLETED").length,
       paymentsCount: paid.length,
-      revenue: paid.reduce((sum, a) => sum + (a.payment?.amount ?? 0), 0),
+      revenue: paid.reduce(
+        (sum, a) => sum + (a.payment?.consultation ?? a.payment?.amount ?? 0),
+        0
+      ),
     };
     return { today, upcoming, stats };
   }, [appointments]);
@@ -302,7 +307,7 @@ export default function DoctorDashboard() {
         <MetricCard
           icon="payments"
           iconClass="text-primary"
-          label="Payments Collected"
+          label="Consultation Earnings"
           value={`₹${stats.revenue.toLocaleString("en-IN")}`}
           sub={`${stats.paymentsCount} payment${stats.paymentsCount === 1 ? "" : "s"}`}
         />

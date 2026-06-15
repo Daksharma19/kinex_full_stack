@@ -279,8 +279,9 @@ export interface Appointment {
     profile: { name: string; email: string; phone?: string | null };
   };
   doctor: { profile: { name: string; email: string } };
-  // Payment amount is in rupees; null until a payment row exists.
-  payment?: { status: PaymentStatus; amount: number } | null;
+  // Amounts in rupees; null until a payment row exists. `amount` is the total
+  // charged; `consultation` is the doctor's net earning (excludes gateway+GST).
+  payment?: { status: PaymentStatus; amount: number; consultation: number | null } | null;
   // Video consultation links (ONLINE appointments, set once paid). The backend
   // scopes these by role: a patient receives roomUrl, a doctor hostRoomUrl.
   roomUrl?: string | null;
@@ -295,19 +296,33 @@ export interface PaymentOrder {
   keyId: string;
 }
 
+/** Itemized invoice shown to the patient before they pay. Amounts in rupees. */
+export interface PaymentInvoice {
+  consultationFee: number;
+  gatewayFeePercent: number;
+  gatewayFee: number;
+  gstPercent: number;
+  gst: number;
+  total: number;
+  totalPaise: number;
+}
+
 /**
  * PATIENT-only: start a booking against an available slot. Creates a PENDING
- * appointment and returns a Razorpay order to complete payment with.
+ * appointment, returns a Razorpay order plus the itemized invoice to display
+ * before the patient completes payment.
  */
 export function bookAppointment(input: {
   slotId: string;
   mode: AppointmentMode;
   notes?: string;
 }) {
-  return apiFetch<{ message: string; appointment: Appointment; payment: PaymentOrder }>(
-    "/appointment",
-    { method: "POST", body: JSON.stringify(input) }
-  );
+  return apiFetch<{
+    message: string;
+    appointment: Appointment;
+    payment: PaymentOrder;
+    invoice: PaymentInvoice;
+  }>("/appointment", { method: "POST", body: JSON.stringify(input) });
 }
 
 /**
