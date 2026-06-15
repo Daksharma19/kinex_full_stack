@@ -2,7 +2,7 @@ import { useAuth } from "../context/AuthContext";
 import AdminDashboard from "./AdminDashboard";
 import DoctorDashboard from "./DoctorDashboard";
 import PatientDashboard from "./PatientDashboard";
-import DashboardSkeleton from "./DashboardSkeleton";
+import Loader from "./Loader";
 
 /**
  * Protected landing page. Only reachable through <ProtectedRoute>, so a session
@@ -15,9 +15,15 @@ export default function Dashboard() {
   if (profile?.role === "DOCTOR") return <DoctorDashboard />;
   if (profile?.role === "PATIENT") return <PatientDashboard />;
 
-  // Profile is still being fetched/provisioned — show a skeleton instead of
-  // briefly flashing the "no profile" message below.
-  if (profileLoading) return <DashboardSkeleton />;
+  // Profile is still being fetched/provisioned — show the branded loader instead
+  // of briefly flashing the "no profile" message below.
+  if (profileLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader label="Loading your dashboard…" />
+      </div>
+    );
+  }
 
   // Authenticated but no app profile yet (e.g. mid-onboarding).
   return (

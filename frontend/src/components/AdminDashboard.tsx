@@ -15,6 +15,7 @@ import {
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import StatusBadge from "./StatusBadge";
+import Loader from "./Loader";
 
 const STATUS_TABS: DoctorStatus[] = ["PENDING", "VERIFIED", "REJECTED"];
 
@@ -300,7 +301,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
                   {loadingApps ? (
-                    <tr><td colSpan={4} className="py-6 text-sm text-on-surface-variant">Loading…</td></tr>
+                    <tr><td colSpan={4}><Loader label="Loading applications…" size={64} /></td></tr>
                   ) : apps.length === 0 ? (
                     <tr><td colSpan={4} className="py-6 text-sm text-on-surface-variant">No {tab.toLowerCase()} applications.</td></tr>
                   ) : (
@@ -360,7 +361,7 @@ export default function AdminDashboard() {
               <span className="text-xs text-on-surface-variant">{users.length} users</span>
             </div>
             {loadingUsers ? (
-              <p className="text-sm text-on-surface-variant">Loading…</p>
+              <Loader label="Loading users…" size={64} />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[28rem] overflow-y-auto pr-1">
                 {users.map((u) => (
@@ -419,7 +420,7 @@ export default function AdminDashboard() {
               <span className="text-xs text-on-surface-variant">{appointments.length} total</span>
             </div>
             {loadingAppts ? (
-              <p className="text-sm text-on-surface-variant">Loading…</p>
+              <Loader label="Loading appointments…" size={64} />
             ) : appointments.length === 0 ? (
               <p className="text-sm text-on-surface-variant">No appointments yet.</p>
             ) : (
