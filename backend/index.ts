@@ -5,7 +5,7 @@ import authRoutes from './routes/auth.routes';
 import doctorRoutes from './routes/doctor.routes';
 import adminRoutes from './routes/admin.routes';
 import appointmentRouter from './routes/appointment.routes';
-import { sendAppointmentReminders } from './controllers/appointment.controller';
+import { sendAppointmentReminders, razorpayWebhook } from './controllers/appointment.controller';
 
 
 const app = express();
@@ -25,6 +25,16 @@ app.use(
   })
 );
 app.use(morgan("dev"));
+
+// Razorpay webhook — MUST be registered before express.json() because the
+// signature is verified against the RAW request bytes. Public (no auth):
+// Razorpay calls it server-to-server. See razorpayWebhook in the controller.
+app.post(
+  '/api/v1/appointment/payment/webhook',
+  express.raw({ type: 'application/json' }),
+  razorpayWebhook
+);
+
 // Larger limit so base64 profile-photo uploads fit.
 app.use(express.json({ limit: "8mb" }));
 

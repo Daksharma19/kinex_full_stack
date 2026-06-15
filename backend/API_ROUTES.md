@@ -138,6 +138,14 @@ consultation fee set.
 - **Returns:** `201` — `{ message, appointment, payment: { orderId, amount, currency, keyId } }`
   · `409` if the slot was just taken · `503` if Razorpay is not configured
 
+### `POST /api/v1/appointment/payment/webhook`
+**Public** Razorpay webhook receiver (server-to-server; no auth). Verifies the
+`X-Razorpay-Signature` against `RAZORPAY_WEBHOOK_SECRET` over the **raw** body, and
+on `payment.captured` idempotently confirms the matching appointment (found by the
+payment's `gatewayOrderId`). Backstop for when the browser callback never fires.
+- **Auth:** none (signature-verified). Register this URL in the Razorpay Dashboard.
+- **Returns:** `200` (acknowledged) · `400` invalid signature
+
 ### `POST /api/v1/appointment/:id/payment/verify`
 Verify the Razorpay payment for an appointment. A valid signature marks the payment
 `VERIFIED` and auto-**confirms** the appointment (slot stays locked). An invalid

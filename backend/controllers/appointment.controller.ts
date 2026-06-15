@@ -5,6 +5,7 @@ import {
   isRazorpayConfigured,
   razorpayKeyId,
   verifyPaymentSignature,
+  verifyWebhookSignature,
 } from "../utils/razorpay";
 import { createWherebyMeeting } from "../utils/whereby";
 import { buildReminderEmail, sendMail } from "../utils/email";
@@ -298,6 +299,67 @@ export async function getAppointmentById(req: Request, res: Response) {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
+ * Razorpay webhook receiver — PUBLIC (no auth; Razorpay isn't logged in). The
+ * route mounts `express.raw()` so `req.body` is the raw Buffer needed to verify
+ * the signature. Confirms an appointment on `payment.captured` even if the
+ * browser callback never fired (e.g. the patient closed the tab after paying).
+ * Idempotent and safe to race with the client-side verify path.
+ */
+export async function razorpayWebhook(req: Request, res: Response) {
+  try {
+    const signature = req.header("x-razorpay-signature") || "";
+    const rawBody: Buffer = Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.from(JSON.stringify(req.body ?? ""));
+
+    if (!verifyWebhookSignature(rawBody, signature)) {
+      return res.status(400).json({ message: "Invalid webhook signature" });
+    }
+
+    const event = JSON.parse(rawBody.toString("utf8"));
+    // Only act on a captured payment; acknowledge everything else.
+    if (event?.event !== "payment.captured") {
+      return res.status(200).json({ received: true });
+    }
+
+    const entity = event?.payload?.payment?.entity;
+    const orderId: string | undefined = entity?.order_id;
+    const paymentId: string | undefined = entity?.id;
+    if (!orderId) return res.status(200).json({ received: true });
+
+    const payment = await prisma.payment.findFirst({
+      where: { gatewayOrderId: orderId },
+      include: { appointment: true },
+    });
+    if (!payment || !payment.appointment) {
+      // Nothing to reconcile (e.g. an order from another system). Ack so Razorpay
+      // doesn't retry indefinitely.
+      return res.status(200).json({ received: true });
+    }
+
+    // Idempotent confirm: only flip a still-PENDING appointment. A guarded
+    // updateMany makes a race with the client-verify path a no-op.
+    const flipped = await prisma.appointment.updateMany({
+      where: { id: payment.appointmentId, status: "PENDING" },
+      data: { status: "CONFIRMED" },
+    });
+    if (flipped.count > 0) {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: "VERIFIED", gatewayPaymentId: paymentId ?? payment.gatewayPaymentId },
+      });
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (error) {
+    console.error("Razorpay webhook error:", error);
+    // 200 on internal errors after signature passed would hide bugs; 500 lets
+    // Razorpay retry the delivery.
+    return res.status(500).json({ message: "Webhook processing failed" });
   }
 }
 
