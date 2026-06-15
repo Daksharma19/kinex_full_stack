@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import ScrollToTop from "./components/ScrollToTop";
 import Layout from "./components/Layout";
 import Home from "./components/Home.jsx";
 import LoginPage from "./components/auth/LoginPage";
@@ -27,6 +28,7 @@ export function App() {
     <AuthProvider>
       <ToastProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />

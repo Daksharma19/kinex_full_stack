@@ -1,8 +1,10 @@
+import { Link } from "react-router-dom";
+
 export default function Services() {
   return (
     <section className="py-14 md:py-28 px-6 md:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-16 gap-4 md:gap-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-10 gap-4 md:gap-8">
           <div className="max-w-xl">
             <h2 className="text-3xl md:text-4xl font-headline font-bold tracking-tight text-primary mb-4 md:mb-6">
               Comprehensive Clinical Excellence
@@ -13,12 +15,12 @@ export default function Services() {
               restorative outcomes.
             </p>
           </div>
-          <a className="text-primary font-bold flex items-center gap-2 group" href="#">
-            Explore Our Methodology
+          <Link className="text-primary font-bold flex items-center gap-2 group shrink-0" to="/services">
+            Explore Our Services
             <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
               arrow_forward
             </span>
-          </a>
+          </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-10">
           {/* Pain Relief */}

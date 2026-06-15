@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import StatusBadge from "./StatusBadge";
+import Loader from "./Loader";
 import AddressLocationModal, {
   type AddressLocationResult,
 } from "./AddressLocationModal";
@@ -413,7 +414,7 @@ export default function PatientDashboard() {
             <div className="bg-surface-container-lowest p-8 rounded-xl shadow-sm border border-outline-variant/10 space-y-6">
               <h3 className="text-xl font-bold text-on-surface">Available doctors</h3>
               {loading ? (
-                <p className="text-sm text-on-surface-variant">Loading…</p>
+                <Loader label="Loading doctors…" size={72} />
               ) : doctors.length === 0 ? (
                 <p className="text-sm text-on-surface-variant">No verified doctors available yet.</p>
               ) : (
@@ -457,7 +458,7 @@ export default function PatientDashboard() {
                   <div className="flex flex-col gap-2">
                     <Label>Available time slots</Label>
                     {slotsLoading ? (
-                      <p className="text-sm text-on-surface-variant">Loading slots…</p>
+                      <Loader label="Loading slots…" size={64} />
                     ) : slots.length === 0 ? (
                       <p className="text-sm text-on-surface-variant">
                         This doctor has no open slots right now. Please check back later.
@@ -522,7 +523,7 @@ export default function PatientDashboard() {
               <button onClick={loadAll} className="text-sm text-primary font-bold hover:underline">Refresh</button>
             </div>
             {loading ? (
-              <p className="text-sm text-on-surface-variant">Loading…</p>
+              <Loader label="Loading appointments…" size={72} />
             ) : appointments.length === 0 ? (
               <p className="text-sm text-on-surface-variant">No appointments yet.</p>
             ) : (

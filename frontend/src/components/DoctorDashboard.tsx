@@ -13,6 +13,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import StatusBadge from "./StatusBadge";
+import Loader from "./Loader";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -328,7 +329,7 @@ export default function DoctorDashboard() {
             </div>
             <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm border border-outline-variant/10">
               {loading ? (
-                <p className="text-sm text-on-surface-variant p-6">Loading…</p>
+                <Loader label="Loading appointments…" size={72} />
               ) : today.length === 0 ? (
                 <p className="text-sm text-on-surface-variant p-6">No appointments scheduled today.</p>
               ) : (
