@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { getServiceById } from "../lib/services";
+import { getServiceById, getServiceImage } from "../lib/services";
 
 /**
  * Service detail page (/services/:id). Looks the service up from services.json
@@ -27,7 +27,7 @@ export default function ServiceDetailPage() {
     <div className="flex-1 w-full bg-background text-on-surface">
       {/* Banner */}
       <header className="relative h-72 md:h-96 overflow-hidden">
-        <img alt={service.title} src={service.image} className="w-full h-full object-cover" />
+        <img alt={service.title} src={getServiceImage(service.id)} className="w-full h-full object-cover" />
         <div className="absolute inset-0 hero-gradient" />
         <div className="absolute inset-0 z-10 max-w-5xl mx-auto px-8 flex flex-col justify-end pb-10">
           <Link

@@ -1,740 +1,364 @@
 [
   {
-    "id": "RB001",
-    "name": "Loop Resistance Bands Set (5 Bands)",
-    "category": "Resistance Bands",
-    "subcategory": "Loop Bands",
-    "image": "/products/page1",
+    "id": "1",
+    "name": "Loop Resistance Bands",
+    "category": "Exercise Equipment",
+    "subcategory": "Resistance Bands",
+    "image": "assets/images/products/1.png",
     "tags": [
-      "exercise",
-      "physiotherapy",
-      "beginner",
-      "intermediate",
-      "advanced"
+      "resistance",
+      "bands",
+      "strength",
+      "rehabilitation",
+      "exercise"
     ]
   },
   {
-    "id": "RB003",
-    "name": "Thera Band Ankle Cuff Resistance Band",
-    "category": "Resistance Bands",
-    "subcategory": "Ankle Cuff Bands",
-    "image": "/products/page5",
+    "id": "2",
+    "name": "Therapy Resistance Bands",
+    "category": "Exercise Equipment",
+    "subcategory": "Therapy Bands",
+    "image": "assets/images/products/2.png",
     "tags": [
+      "therapy",
+      "resistance",
+      "stretching",
       "physiotherapy",
+      "exercise"
+    ]
+  },
+  {
+    "id": "3",
+    "name": "Ankle Resistance Trainer",
+    "category": "Exercise Equipment",
+    "subcategory": "Resistance Trainer",
+    "image": "assets/images/products/3.png",
+    "tags": [
       "ankle",
-      "rehab"
+      "resistance",
+      "training",
+      "rehabilitation",
+      "fitness"
     ]
   },
   {
-    "id": "RB004",
-    "name": "Tube Resistance Band with Foam Handles",
-    "category": "Resistance Bands",
-    "subcategory": "Tube Bands",
-    "image": "/products/page6",
-    "tags": [
-      "exercise",
-      "physiotherapy",
-      "home-gym"
-    ]
-  },
-  {
-    "id": "AW001",
-    "name": "Fovera Ankle / Wrist Weights \u2013 1 kg (Pair)",
-    "category": "Weights",
-    "subcategory": "Ankle & Wrist Weights",
-    "image": "/products/page11",
-    "tags": [
-      "exercise",
-      "physiotherapy",
-      "rehab",
-      "walking"
-    ]
-  },
-  {
-    "id": "AW002",
-    "name": "Cosco Ankle / Wrist Weights",
-    "category": "Weights",
-    "subcategory": "Ankle & Wrist Weights",
-    "image": "/products/page13",
-    "tags": [
-      "exercise",
-      "physiotherapy",
-      "rehab"
-    ]
-  },
-  {
-    "id": "AW003",
-    "name": "Sand Bag Ankle / Wrist Weights (0.5 \u2013 2 kg)",
-    "category": "Weights",
-    "subcategory": "Ankle & Wrist Weights",
-    "image": "/products/page76",
-    "tags": [
-      "exercise",
-      "physiotherapy",
-      "rehab"
-    ]
-  },
-  {
-    "id": "EX001",
-    "name": "Pedal Exerciser with Spring Resistance",
+    "id": "4",
+    "name": "Resistance Tube with Handles",
     "category": "Exercise Equipment",
-    "subcategory": "Pedal Exerciser",
-    "image": "/products/page14",
+    "subcategory": "Resistance Tubes",
+    "image": "assets/images/products/4.png",
     "tags": [
-      "exercise",
-      "physiotherapy",
-      "elderly",
-      "rehab"
+      "tube",
+      "resistance",
+      "handles",
+      "strength",
+      "exercise"
     ]
   },
   {
-    "id": "EX002",
-    "name": "Spinning Exercise Bike (Sparnod)",
+    "id": "5",
+    "name": "Yoga Exercise Mat",
     "category": "Exercise Equipment",
-    "subcategory": "Exercise Bike",
-    "image": "/products/page15",
+    "subcategory": "Exercise Mats",
+    "image": "assets/images/products/5.png",
     "tags": [
-      "exercise",
-      "cardio",
-      "home-gym"
-    ]
-  },
-  {
-    "id": "EX003",
-    "name": "Yoga / Exercise Mat",
-    "category": "Exercise Equipment",
-    "subcategory": "Yoga Mat",
-    "image": "/products/page10",
-    "tags": [
-      "exercise",
       "yoga",
-      "physiotherapy"
+      "mat",
+      "exercise",
+      "stretching",
+      "fitness"
     ]
   },
   {
-    "id": "EX004",
-    "name": "Gym Ball / Swiss Ball (Technix)",
-    "category": "Exercise Equipment",
-    "subcategory": "Gym Ball",
-    "image": "/products/page78",
+    "id": "6",
+    "name": "Wrist Weights",
+    "category": "Strength Training",
+    "subcategory": "Weighted Accessories",
+    "image": "assets/images/products/6.png",
     "tags": [
-      "exercise",
-      "physiotherapy",
-      "core",
-      "balance"
+      "wrist",
+      "weights",
+      "strength",
+      "training",
+      "rehabilitation"
     ]
   },
   {
-    "id": "EX005",
-    "name": "Mini Trampoline / Rebounder",
+    "id": "7",
+    "name": "Pedal Exerciser",
     "category": "Exercise Equipment",
-    "subcategory": "Trampoline",
-    "image": "/products/page82",
+    "subcategory": "Rehabilitation Equipment",
+    "image": "assets/images/products/7.png",
     "tags": [
+      "pedal",
       "exercise",
+      "cycling",
+      "rehabilitation",
+      "mobility"
+    ]
+  },
+  {
+    "id": "8",
+    "name": "Exercise Bike",
+    "category": "Exercise Equipment",
+    "subcategory": "Cardio Equipment",
+    "image": "assets/images/products/8.png",
+    "tags": [
+      "bike",
+      "cycling",
       "cardio",
-      "balance",
-      "rehab"
+      "fitness",
+      "exercise"
     ]
   },
   {
-    "id": "EX006",
-    "name": "Wobble Balance Board (Acco)",
-    "category": "Exercise Equipment",
-    "subcategory": "Balance Board",
-    "image": "/products/page81",
-    "tags": [
-      "exercise",
-      "balance",
-      "physiotherapy",
-      "rehab",
-      "ankle"
-    ]
-  },
-  {
-    "id": "FC001",
-    "name": "Renesmee Flatfoot Orthopedic Shoe Insoles",
-    "category": "Foot Care",
-    "subcategory": "Insoles",
-    "image": "/products/page17",
-    "tags": [
-      "foot-care",
-      "flatfoot",
-      "arch-support",
-      "children"
-    ]
-  },
-  {
-    "id": "FC002",
-    "name": "Arch Support Insoles (All Arch Types)",
-    "category": "Foot Care",
-    "subcategory": "Insoles",
-    "image": "/products/page18",
-    "tags": [
-      "foot-care",
-      "arch-support",
-      "flatfoot",
-      "high-arch"
-    ]
-  },
-  {
-    "id": "FC003",
-    "name": "Plantar Fasciitis Arch Support Sleeve",
-    "category": "Foot Care",
-    "subcategory": "Arch Support",
-    "image": "/products/page19",
-    "tags": [
-      "foot-care",
-      "arch-support",
-      "plantar-fasciitis"
-    ]
-  },
-  {
-    "id": "FC004",
-    "name": "Flat Foot Arch Collapse Support Sleeve",
-    "category": "Foot Care",
-    "subcategory": "Arch Support",
-    "image": "/products/page21",
-    "tags": [
-      "foot-care",
-      "flatfoot",
-      "arch-support"
-    ]
-  },
-  {
-    "id": "FC005",
-    "name": "Arch Support Band (Beige)",
-    "category": "Foot Care",
-    "subcategory": "Arch Support",
-    "image": "/products/page23",
-    "tags": [
-      "foot-care",
-      "arch-support",
-      "flatfoot"
-    ]
-  },
-  {
-    "id": "FC006",
-    "name": "Foot Massage Roller (Spiky / Knobbed)",
-    "category": "Foot Care",
-    "subcategory": "Foot Roller",
-    "image": "/products/page24",
-    "tags": [
-      "foot-care",
-      "massage",
-      "plantar-fasciitis",
-      "relaxation"
-    ]
-  },
-  {
-    "id": "KS001",
-    "name": "Tynor Knee Support Sportif (Neoprene)",
-    "category": "Knee Support",
-    "subcategory": "Knee Brace",
-    "image": "/products/page25",
-    "tags": [
-      "knee",
-      "support",
-      "neoprene",
-      "sports",
-      "physiotherapy"
-    ]
-  },
-  {
-    "id": "KS002",
-    "name": "Dr. Ortho Knee Cap",
-    "category": "Knee Support",
-    "subcategory": "Knee Cap",
-    "image": "/products/page28",
-    "tags": [
-      "knee",
-      "support",
-      "compression",
-      "arthritis"
-    ]
-  },
-  {
-    "id": "KS003",
-    "name": "Careforce Open Patella Knee Brace",
-    "category": "Knee Support",
-    "subcategory": "Knee Brace",
-    "image": "/products/page30",
-    "tags": [
-      "knee",
-      "support",
-      "patella",
-      "open-knee"
-    ]
-  },
-  {
-    "id": "AS001",
-    "name": "ActivSport Ankle Support",
-    "category": "Ankle Support",
-    "subcategory": "Ankle Brace",
-    "image": "/products/page16",
+    "id": "9",
+    "name": "Ankle Support Brace",
+    "category": "Orthopedic Supports",
+    "subcategory": "Ankle Support",
+    "image": "assets/images/products/9.png",
     "tags": [
       "ankle",
-      "support",
-      "sports",
-      "sprain"
-    ]
-  },
-  {
-    "id": "AS002",
-    "name": "Tynor Ankle Wrap Support",
-    "category": "Ankle Support",
-    "subcategory": "Ankle Wrap",
-    "image": "/products/page69",
-    "tags": [
-      "ankle",
+      "brace",
       "support",
       "compression",
-      "sprain",
-      "physiotherapy"
+      "injury"
     ]
   },
   {
-    "id": "BS001",
-    "name": "Tynor Lumbar Sacral Belt",
-    "category": "Back Support",
-    "subcategory": "Lumbar Belt",
-    "image": "/products/page31",
+    "id": "10",
+    "name": "Arch Support Insoles",
+    "category": "Foot Orthotics",
+    "subcategory": "Insoles",
+    "image": "assets/images/products/10.png",
     "tags": [
-      "back",
-      "lumbar",
-      "support",
-      "pain-relief",
-      "posture"
-    ]
-  },
-  {
-    "id": "BS002",
-    "name": "Lumbar Back Belt with Adjustable Support",
-    "category": "Back Support",
-    "subcategory": "Lumbar Belt",
-    "image": "/products/page42",
-    "tags": [
-      "back",
-      "lumbar",
-      "support",
-      "adjustable"
-    ]
-  },
-  {
-    "id": "BS003",
-    "name": "Boldfit Posture Corrector (Unisex)",
-    "category": "Back Support",
-    "subcategory": "Posture Corrector",
-    "image": "/products/page33",
-    "tags": [
-      "back",
-      "posture",
-      "shoulder",
-      "spine",
-      "upper-back"
-    ]
-  },
-  {
-    "id": "BS004",
-    "name": "Fovera Posture Corrector (Unisex)",
-    "category": "Back Support",
-    "subcategory": "Posture Corrector",
-    "image": "/products/page37",
-    "tags": [
-      "back",
-      "posture",
-      "shoulder",
-      "spine",
-      "upper-back"
-    ]
-  },
-  {
-    "id": "BS005",
-    "name": "Dr. Ortho Orthopaedic Back Rest + Coccyx Cushion Combo",
-    "category": "Back Support",
-    "subcategory": "Back Rest & Cushion",
-    "image": "/products/page39",
-    "tags": [
-      "back",
-      "lumbar",
-      "seating",
-      "office",
-      "coccyx"
-    ]
-  },
-  {
-    "id": "BS006",
-    "name": "Careforce Coccyx Seat Cushion",
-    "category": "Back Support",
-    "subcategory": "Seat Cushion",
-    "image": "/products/page44",
-    "tags": [
-      "back",
-      "coccyx",
-      "seating",
-      "office",
-      "pain-relief"
-    ]
-  },
-  {
-    "id": "BS007",
-    "name": "Lumbar Back Rest + Seat Cushion Combo",
-    "category": "Back Support",
-    "subcategory": "Back Rest & Cushion",
-    "image": "/products/page46",
-    "tags": [
-      "back",
-      "lumbar",
-      "seating",
-      "office"
-    ]
-  },
-  {
-    "id": "BS008",
-    "name": "Lumbar Back Pillow with Heat Pad",
-    "category": "Back Support",
-    "subcategory": "Lumbar Pillow",
-    "image": "/products/page47",
-    "tags": [
-      "back",
-      "lumbar",
-      "pillow",
-      "heat",
-      "sleep"
-    ]
-  },
-  {
-    "id": "NS001",
-    "name": "Tynor Cervical Collar (Soft)",
-    "category": "Neck Support",
-    "subcategory": "Cervical Collar",
-    "image": "/products/page51",
-    "tags": [
-      "neck",
-      "cervical",
-      "support",
-      "soft",
-      "pain-relief"
-    ]
-  },
-  {
-    "id": "NS002",
-    "name": "Tynor Cervical Collar (Hard / Philadelphia)",
-    "category": "Neck Support",
-    "subcategory": "Cervical Collar",
-    "image": "/products/page52",
-    "tags": [
-      "neck",
-      "cervical",
-      "support",
-      "rigid",
-      "immobilization"
-    ]
-  },
-  {
-    "id": "NS003",
-    "name": "Neck Stretcher / Cervical Traction Device",
-    "category": "Neck Support",
-    "subcategory": "Neck Stretcher",
-    "image": "/products/page49",
-    "tags": [
-      "neck",
-      "cervical",
-      "traction",
-      "pain-relief",
-      "physiotherapy"
-    ]
-  },
-  {
-    "id": "NS004",
-    "name": "Travel / U-shaped Neck Pillow (Billebon)",
-    "category": "Neck Support",
-    "subcategory": "Neck Pillow",
-    "image": "/products/page48",
-    "tags": [
-      "neck",
-      "pillow",
-      "travel",
-      "sleep",
+      "insoles",
+      "arch",
+      "foot",
+      "orthotic",
       "support"
     ]
   },
   {
-    "id": "ES001",
-    "name": "Tynor Tennis Elbow Support",
-    "category": "Elbow Support",
-    "subcategory": "Elbow Strap",
-    "image": "/products/page54",
+    "id": "11",
+    "name": "Forefoot Support Sleeve",
+    "category": "Foot Orthotics",
+    "subcategory": "Forefoot Support",
+    "image": "assets/images/products/11.png",
     "tags": [
-      "elbow",
-      "tennis-elbow",
+      "forefoot",
+      "metatarsal",
+      "foot",
       "support",
-      "sports"
+      "pain relief"
     ]
   },
   {
-    "id": "ES002",
-    "name": "Glorified Ortho Open Elbow Brace",
-    "category": "Elbow Support",
-    "subcategory": "Elbow Brace",
-    "image": "/products/page55",
+    "id": "12",
+    "name": "Knee Support Brace",
+    "category": "Orthopedic Supports",
+    "subcategory": "Knee Support",
+    "image": "assets/images/products/12.png",
     "tags": [
-      "elbow",
+      "knee",
+      "brace",
       "support",
-      "open-elbow",
-      "neoprene"
-    ]
-  },
-  {
-    "id": "ES003",
-    "name": "Knitted Elbow Compression Sleeve",
-    "category": "Elbow Support",
-    "subcategory": "Elbow Sleeve",
-    "image": "/products/page56",
-    "tags": [
-      "elbow",
       "compression",
-      "sleeve",
-      "sports",
-      "gym"
+      "stability"
     ]
   },
   {
-    "id": "ES004",
-    "name": "Tynor Hinged ROM Elbow Brace",
-    "category": "Elbow Support",
-    "subcategory": "ROM Elbow Brace",
-    "image": "/products/page57",
+    "id": "13",
+    "name": "Lumbar Support Belt",
+    "category": "Orthopedic Supports",
+    "subcategory": "Back Support",
+    "image": "assets/images/products/13.png",
     "tags": [
-      "elbow",
-      "hinged",
-      "ROM",
-      "post-surgery",
-      "rehab"
-    ]
-  },
-  {
-    "id": "WS001",
-    "name": "Tynor Wrist Brace with Aluminium Splint",
-    "category": "Wrist & Hand Support",
-    "subcategory": "Wrist Brace",
-    "image": "/products/page58",
-    "tags": [
-      "wrist",
-      "splint",
-      "carpal-tunnel",
+      "lumbar",
+      "back",
       "support",
-      "fracture"
+      "belt",
+      "posture"
     ]
   },
   {
-    "id": "WS002",
-    "name": "Tynor Wrist Wrap / Universal Wrist Support",
-    "category": "Wrist & Hand Support",
-    "subcategory": "Wrist Wrap",
-    "image": "/products/page60",
+    "id": "14",
+    "name": "Posture Corrector",
+    "category": "Orthopedic Supports",
+    "subcategory": "Posture Support",
+    "image": "assets/images/products/14.png",
     "tags": [
-      "wrist",
-      "support",
-      "wrap",
-      "sports",
-      "gym"
-    ]
-  },
-  {
-    "id": "WS003",
-    "name": "Tynor Thumb Spica Support",
-    "category": "Wrist & Hand Support",
-    "subcategory": "Thumb Brace",
-    "image": "/products/page61",
-    "tags": [
-      "thumb",
-      "wrist",
-      "support",
-      "sprain",
-      "arthritis"
-    ]
-  },
-  {
-    "id": "WS004",
-    "name": "Tynor Wrist & Forearm Splint",
-    "category": "Wrist & Hand Support",
-    "subcategory": "Wrist Splint",
-    "image": "/products/page64",
-    "tags": [
-      "wrist",
-      "forearm",
-      "splint",
-      "fracture",
-      "immobilization"
-    ]
-  },
-  {
-    "id": "SL001",
-    "name": "Tynor Arm Sling Pouch",
-    "category": "Arm Sling",
-    "subcategory": "Arm Sling",
-    "image": "/products/page62",
-    "tags": [
-      "arm",
-      "sling",
-      "fracture",
+      "posture",
+      "corrector",
+      "back",
       "shoulder",
-      "post-surgery"
+      "support"
     ]
   },
   {
-    "id": "CB001",
-    "name": "Crepe Bandage (Pack of 2)",
-    "category": "Bandages & Tapes",
-    "subcategory": "Crepe Bandage",
-    "image": "/products/page65",
+    "id": "15",
+    "name": "Adjustable Back Support Belt",
+    "category": "Orthopedic Supports",
+    "subcategory": "Back Support",
+    "image": "assets/images/products/15.png",
     "tags": [
-      "bandage",
+      "back",
+      "support",
+      "belt",
+      "lumbar",
+      "compression"
+    ]
+  },
+  {
+    "id": "16",
+    "name": "Orthopedic Seat Cushion",
+    "category": "Comfort & Support",
+    "subcategory": "Seat Cushions",
+    "image": "assets/images/products/16.png",
+    "tags": [
+      "seat",
+      "cushion",
+      "orthopedic",
+      "comfort",
+      "pressure relief"
+    ]
+  },
+  {
+    "id": "17",
+    "name": "Lumbar Cushion Set",
+    "category": "Comfort & Support",
+    "subcategory": "Back Cushions",
+    "image": "assets/images/products/17.png",
+    "tags": [
+      "lumbar",
+      "cushion",
+      "back support",
+      "office",
+      "comfort"
+    ]
+  },
+  {
+    "id": "18",
+    "name": "Travel Neck Pillow",
+    "category": "Comfort & Support",
+    "subcategory": "Neck Support",
+    "image": "assets/images/products/18.png",
+    "tags": [
+      "neck",
+      "pillow",
+      "travel",
+      "support",
+      "comfort"
+    ]
+  },
+  {
+    "id": "19",
+    "name": "Cervical Neck Stretcher",
+    "category": "Rehabilitation Equipment",
+    "subcategory": "Neck Therapy",
+    "image": "assets/images/products/19.png",
+    "tags": [
+      "cervical",
+      "neck",
+      "stretcher",
+      "therapy",
+      "pain relief"
+    ]
+  },
+  {
+    "id": "20",
+    "name": "Arm Sling",
+    "category": "Orthopedic Supports",
+    "subcategory": "Shoulder Support",
+    "image": "assets/images/products/20.png",
+    "tags": [
+      "arm sling",
+      "shoulder",
+      "fracture",
+      "support",
+      "recovery"
+    ]
+  },
+  {
+    "id": "21",
+    "name": "Calf Compression Sleeve",
+    "category": "Orthopedic Supports",
+    "subcategory": "Calf Support",
+    "tags": [
       "compression",
-      "sprain",
-      "sports",
-      "first-aid"
-    ]
+      "calf support",
+      "sports recovery",
+      "shin splints",
+      "calf strains",
+      "varicose veins",
+      "calf injuries",
+      "circulation",
+      "running",
+      "rehabilitation"
+    ],
+    "image": "assets/images/products/21.png"
   },
   {
-    "id": "CB002",
-    "name": "Crepe Bandage Multi-Size Set",
-    "category": "Bandages & Tapes",
-    "subcategory": "Crepe Bandage",
-    "image": "/products/page68",
+    "id": "22",
+    "name": "Massage & Recovery Kit",
+    "category": "Rehabilitation Equipment",
+    "subcategory": "Massage & Recovery Tools",
     "tags": [
-      "bandage",
-      "compression",
-      "sprain",
-      "physiotherapy"
-    ]
-  },
-  {
-    "id": "CB003",
-    "name": "My Armor Elastic Adhesive Bandage",
-    "category": "Bandages & Tapes",
-    "subcategory": "Elastic Bandage",
-    "image": "/products/page71",
-    "tags": [
-      "bandage",
-      "elastic",
-      "adhesive",
-      "sports",
-      "first-aid"
-    ]
-  },
-  {
-    "id": "CB004",
-    "name": "MuscleFix Rigid Sports Tape",
-    "category": "Bandages & Tapes",
-    "subcategory": "Sports Tape",
-    "image": "/products/page72",
-    "tags": [
-      "tape",
-      "rigid",
-      "sports",
-      "joints",
-      "physiotherapy"
-    ]
-  },
-  {
-    "id": "CB005",
-    "name": "Stoga Athletic Rigid Zinc Oxide Strapping Tape",
-    "category": "Bandages & Tapes",
-    "subcategory": "Sports Tape",
-    "image": "/products/page74",
-    "tags": [
-      "tape",
-      "rigid",
-      "zinc-oxide",
-      "sports",
+      "foam roller",
+      "massage stick",
+      "massage ball",
+      "spiky massage ball",
+      "myofascial release",
+      "muscle recovery",
+      "deep tissue massage",
+      "sports recovery",
+      "trigger point therapy",
       "physiotherapy",
-      "cricket",
-      "boxing"
-    ]
-  },
-  {
-    "id": "CL001",
-    "name": "Fovera Calf Compression Sleeve",
-    "category": "Compression Sleeves",
-    "subcategory": "Calf Sleeve",
-    "image": "/products/page66",
-    "tags": [
-      "calf",
-      "compression",
-      "varicose-veins",
-      "shin-splints",
-      "sports"
-    ]
-  },
-  {
-    "id": "MR001",
-    "name": "Foam Roller + Massage Stick + Massage Ball Set",
-    "category": "Massage & Recovery",
-    "subcategory": "Foam Roller Set",
-    "image": "/products/page79",
-    "tags": [
-      "massage",
-      "foam-roller",
-      "recovery",
-      "muscle",
-      "physiotherapy"
-    ]
-  },
-  {
-    "id": "MR002",
-    "name": "Cylindrical Foam Rollers (Set of 3 sizes)",
-    "category": "Massage & Recovery",
-    "subcategory": "Foam Roller",
-    "image": "/products/page77",
-    "tags": [
-      "massage",
-      "foam-roller",
-      "recovery",
-      "physiotherapy"
-    ]
-  },
-  {
-    "id": "MA001",
-    "name": "Canes & Walking Sticks",
-    "category": "Mobility Aids",
-    "subcategory": "Walking Cane",
-    "image": "/products/page83",
-    "tags": [
       "mobility",
-      "elderly",
-      "walking",
-      "rehab"
-    ]
+      "rehabilitation"
+    ],
+    "image": "assets/images/products/22.png"
   },
   {
-    "id": "MA002",
-    "name": "Walking Frame / Rollator / Wheelchair Set",
-    "category": "Mobility Aids",
-    "subcategory": "Walker & Wheelchair",
-    "image": "/products/page84",
+    "id": "23",
+    "name": "Wooden Balance Board",
+    "category": "Rehabilitation Equipment",
+    "subcategory": "Balance & Coordination Training",
     "tags": [
-      "mobility",
-      "elderly",
-      "wheelchair",
-      "walker",
-      "rehab"
-    ]
+      "balance board",
+      "wobble board",
+      "proprioception",
+      "ankle rehabilitation",
+      "knee rehabilitation",
+      "core stability",
+      "balance training",
+      "coordination",
+      "sports rehabilitation",
+      "physiotherapy",
+      "neurological rehabilitation",
+      "post injury recovery"
+    ],
+    "image": "assets/images/products/23.png"
   },
   {
-    "id": "MA003",
-    "name": "Mobility Aids Bundle (Wheelchair, Walker, Rollator, Cane, Commode Chair)",
-    "category": "Mobility Aids",
-    "subcategory": "Mobility Bundle",
-    "image": "/products/page85",
+    "id": "24",
+    "name": "Exercise Stability Ball",
+    "category": "Rehabilitation Equipment",
+    "subcategory": "Exercise Balls",
     "tags": [
-      "mobility",
-      "elderly",
-      "wheelchair",
-      "walker",
-      "commode",
-      "rehab"
-    ]
+      "stability ball",
+      "swiss ball",
+      "gym ball",
+      "exercise ball",
+      "core strengthening",
+      "balance training",
+      "posture correction",
+      "physiotherapy",
+      "rehabilitation",
+      "stretching",
+      "pilates",
+      "fitness"
+    ],
+    "image": "assets/images/products/24.png"
   }
 ]

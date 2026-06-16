@@ -140,7 +140,7 @@ export default function Navbar() {
     <nav className="fixed top-0 w-full z-50 glass-nav shadow-sm">
       <div className="flex justify-between items-center px-6 md:px-8 h-20 max-w-7xl mx-auto">
         <Link to="/" className="flex items-center gap-3 min-w-0">
-          <img alt="Kinex Healthcare Logo" className="h-10 w-auto shrink-0" src={LOGO} />
+          <img alt="Kinex wellness Logo" className="h-10 w-auto shrink-0" src={LOGO} />
           <span className="text-base sm:text-lg lg:text-xl font-headline font-bold tracking-tight text-primary truncate">
             Kinex Wellness & Rehab
           </span>

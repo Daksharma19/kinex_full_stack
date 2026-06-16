@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { services } from "../lib/services";
+import { services, getServiceImage } from "../lib/services";
 
 /**
  * Public "Our Clinical Specialties" services page. Cards are data-driven from
@@ -37,7 +37,7 @@ export default function ServicesPage() {
                 <div className="relative h-44 overflow-hidden">
                   <img
                     alt={s.title}
-                    src={s.image}
+                    src={getServiceImage(s.id)}
                     loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />

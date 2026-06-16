@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { products, categories, type Product } from "../lib/products";
-import PRODUCT_PLACEHOLDER from "../../assets/images/product/service_bg.png";
+import { products, categories, getProductImage, type Product } from "../lib/products";
 
 /**
  * Public "/products" catalog. Renders every product from src/data/products.json
@@ -16,18 +15,17 @@ const ALL = "All Categories";
 // The product images in the data are placeholder paths without real files, so we
 // render a branded placeholder tile keyed off the product's initials instead.
 function ProductImage({ product }: { product: Product }) {
-  const initials = product.id.slice(0, 2).toUpperCase();
+  const src = getProductImage(product.id);
   return (
     <div className="relative h-40 overflow-hidden bg-primary-container/15">
-      <img
-        src={PRODUCT_PLACEHOLDER}
-        alt={product.name}
-        loading="lazy"
-        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-      />
-      <span className="absolute bottom-2 right-3 text-xs font-bold tracking-widest text-white/80 drop-shadow">
-        {initials}
-      </span>
+      {src && (
+        <img
+          src={src}
+          alt={product.name}
+          loading="lazy"
+          className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-700"
+        />
+      )}
     </div>
   );
 }
