@@ -212,13 +212,20 @@ function slotWindow() {
   return { windowStart, windowEnd };
 }
 
-// A valid slot starts exactly on the hour, lies inside the 3-day window, and is
-// still in the future. Returns the normalized Date or null if invalid.
+// A valid slot starts on a whole (local) hour, lies inside the 3-day window, and
+// is still in the future. Returns the normalized Date or null if invalid.
+//
+// NOTE: we only require seconds/milliseconds to be zero — NOT minutes. The
+// frontend aligns slots to a whole hour in the DOCTOR's local timezone and sends
+// the absolute instant (UTC). For half-hour-offset zones (e.g. IST +5:30, the
+// minute component in UTC is 30, not 0), so a server-side `getMinutes() === 0`
+// check (run in the server's UTC timezone) would wrongly reject every slot.
+// Seconds/ms are always zero for a whole-hour instant regardless of timezone,
+// and the UI guarantees hourly alignment.
 function normalizeSlot(input: unknown): Date | null {
   const d = new Date(input as string);
   if (isNaN(d.getTime())) return null;
-  if (d.getMinutes() !== 0 || d.getSeconds() !== 0 || d.getMilliseconds() !== 0)
-    return null;
+  if (d.getSeconds() !== 0 || d.getMilliseconds() !== 0) return null;
   if (d.getTime() <= Date.now()) return null;
   const { windowStart, windowEnd } = slotWindow();
   if (d < windowStart || d >= windowEnd) return null;
