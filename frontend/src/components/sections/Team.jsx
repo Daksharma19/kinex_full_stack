@@ -7,13 +7,13 @@ export default function Team() {
           <div className="relative group max-w-xs sm:max-w-sm mx-auto lg:max-w-none w-full">
             <div className="absolute -inset-4 bg-primary-container/10 rounded-2xl -rotate-2 group-hover:rotate-0 transition-transform duration-500"></div>
             <img
-              alt="Dr. Maheshvar Prajapati"
+              alt="Dr. Maheshwar Prajapati"
               className="relative z-10 w-full aspect-[4/5] object-cover rounded-xl shadow-xl duration-700"
               src={DOCTOR}
             />
             <div className="absolute bottom-5 left-5 md:bottom-10 md:left-10 z-20 bg-white/90 backdrop-blur-md p-4 md:p-6 rounded-lg shadow-lg">
               <h4 className="text-base md:text-xl font-headline font-bold text-on-surface">
-                Dr. Maheshvar Prajapati
+                Dr. Maheshwar Prajapati
               </h4>
             </div>
           </div>
@@ -25,8 +25,8 @@ export default function Team() {
               Guided by World-Class Expertise
             </h2>
             <p className="text-lg md:text-xl text-on-surface-variant leading-relaxed mb-6 md:mb-8">
-              Dr. Maheshvar Prajapati serves as our Senior Consultant, bringing
-              over two decades of clinical mastery in advanced physiotherapy and
+              Dr. Maheshwar Prajapati serves as our Senior Consultant, bringing
+              clinical mastery in advanced physiotherapy and
               sports medicine.
             </p>
             <div className="space-y-5 md:space-y-6 mb-6 md:mb-12">
