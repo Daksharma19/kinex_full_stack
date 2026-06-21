@@ -1,7 +1,7 @@
 import SPACE from "../../../assets/images/space.png";
 export default function ChooseUs() {
   return (
-    <section className="py-20 md:py-28 px-6 md:px-8">
+    <section className="pt-8 md:pt-12 pb-20 md:pb-28 px-6 md:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="bg-surface-container-low rounded-3xl overflow-hidden shadow-sm">
           <div className="grid grid-cols-1 lg:grid-cols-2">
@@ -11,7 +11,7 @@ export default function ChooseUs() {
               </h2>
               <p className="text-on-surface-variant text-lg mb-12 leading-relaxed">
                 Our facilities are meticulously designed to reduce cortisol and
-                promote parasympathetic activation—essential states for deep
+                promote parasympathetic activation-essential states for deep
                 physiological healing.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">

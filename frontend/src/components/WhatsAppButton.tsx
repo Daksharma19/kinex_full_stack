@@ -23,8 +23,8 @@ export default function WhatsAppButton() {
 
       {/* Bubble */}
       <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl group-active:scale-95">
-        {/* Pulsing ring */}
-        <span className="absolute inset-0 rounded-full bg-[#25D366] opacity-60 animate-ping" />
+        {/* Pulsing ring — pauses and fades out while hovered */}
+        <span className="absolute inset-0 rounded-full bg-[#25D366] opacity-60 animate-ping group-hover:animate-none group-hover:opacity-0" />
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"

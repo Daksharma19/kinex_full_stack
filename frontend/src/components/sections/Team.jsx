@@ -1,67 +1,70 @@
-import DOCTOR from "../../../assets/images/doctor.png";
+import doctor from "../../../assets/images/doctor.png";
+const TEAM = [
+  {
+    name: "Dr. Maheshwar Prajapati",
+    role: "Lead Physiotherapist",
+    bio: "Specializing in advanced musculoskeletal recovery, Dr. Prajapati integrates traditional techniques with modern kinetic science. His approach focuses on precision-based movement patterns and neurological re-education to ensure long-term physical resilience.",
+    image: doctor,
+  },
+  {
+    name: "Dr. Varsha",
+    role: "Clinical Director",
+    bio: "With a focus on holistic patient journeys, Dr. Varsha oversees the integration of clinical excellence and wellness protocols. Her leadership ensures that every patient's recovery is supported by empathetic guidance and evidence-based clinical strategies.",
+    image: null,
+  },
+];
+
+function ProfilePlaceholder() {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-secondary-container rounded-full">
+      <span
+        className="material-symbols-outlined text-on-secondary-container"
+        style={{ fontSize: "3.5rem" }}
+      >
+        person
+      </span>
+    </div>
+  );
+}
+
 export default function Team() {
   return (
-    <section className="py-14 md:py-28 bg-surface-container-lowest overflow-hidden">
+    <section className="pt-2 md:pt-4 pb-4 md:pb-6 bg-background overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 md:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-center">
-          <div className="relative group max-w-xs sm:max-w-sm mx-auto lg:max-w-none w-full">
-            <div className="absolute -inset-4 bg-primary-container/10 rounded-2xl -rotate-2 group-hover:rotate-0 transition-transform duration-500"></div>
-            <img
-              alt="Dr. Maheshwar Prajapati"
-              className="relative z-10 w-full aspect-[4/5] object-cover rounded-xl shadow-xl duration-700"
-              src={DOCTOR}
-            />
-            <div className="absolute bottom-5 left-5 md:bottom-10 md:left-10 z-20 bg-white/90 backdrop-blur-md p-4 md:p-6 rounded-lg shadow-lg">
-              <h4 className="text-base md:text-xl font-headline font-bold text-on-surface">
-                Dr. Maheshwar Prajapati
-              </h4>
-            </div>
-          </div>
-          <div>
-            <span className="text-primary font-bold tracking-[0.2em] uppercase text-sm mb-4 block">
-              Medical Leadership
-            </span>
-            <h2 className="text-3xl md:text-5xl font-headline font-bold text-on-surface mb-4 md:mb-8 leading-tight">
-              Guided by World-Class Expertise
-            </h2>
-            <p className="text-lg md:text-xl text-on-surface-variant leading-relaxed mb-6 md:mb-8">
-              Dr. Maheshwar Prajapati serves as our Senior Consultant, bringing
-              clinical mastery in advanced physiotherapy and
-              sports medicine.
-            </p>
-            <div className="space-y-5 md:space-y-6 mb-6 md:mb-12">
-              <div className="flex items-start gap-4">
-                <div className="mt-1 text-primary">
-                  <span className="material-symbols-outlined">verified</span>
-                </div>
-                <div>
-                  <h5 className="font-bold text-on-surface">
-                    Senior Consultant MD
-                  </h5>
-                  <p className="text-on-surface-variant">
-                    Lead strategist for patient outcome protocols and medical
-                    innovation.
-                  </p>
-                </div>
+        <header className="mb-8 md:mb-10 text-center">
+          <h2 className="text-2xl md:text-3xl font-headline font-bold text-on-surface tracking-tight">
+            Meet Our Team
+          </h2>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+          {TEAM.map((member) => (
+            <article
+              key={member.name}
+              className="group flex flex-col items-center text-center bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10"
+            >
+              <div className="relative shrink-0 aspect-square overflow-hidden rounded-full w-28 md:w-32">
+                {member.image ? (
+                  <img
+                    alt={member.name}
+                    className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105 rounded-full"
+                    src={member.image}
+                  />
+                ) : (
+                  <ProfilePlaceholder />
+                )}
               </div>
-              <div className="flex items-start gap-4">
-                <div className="mt-1 text-primary">
-                  <span className="material-symbols-outlined">
-                    workspace_premium
-                  </span>
-                </div>
-                <div>
-                  <h5 className="font-bold text-on-surface">
-                    Specialized Practice
-                  </h5>
-                  <p className="text-on-surface-variant">
-                    Focusing on complex skeletal rehabilitation and geriatric
-                    vitality.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+              <h3 className="mt-4 text-lg md:text-xl font-headline font-bold text-on-surface tracking-tight">
+                {member.name}
+              </h3>
+              <p className="mt-1 text-primary font-semibold tracking-wide uppercase text-xs">
+                {member.role}
+              </p>
+              <p className="mt-3 text-sm text-on-surface-variant leading-relaxed">
+                {member.bio}
+              </p>
+            </article>
+          ))}
         </div>
       </div>
     </section>
