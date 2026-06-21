@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./sections/Navbar.jsx";
 import Footer from "./sections/Footer.jsx";
+import WhatsAppButton from "./WhatsAppButton";
 
 /**
  * Shared chrome for every route: the fixed Navbar (logo/title link back home)
@@ -15,6 +16,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <WhatsAppButton />
     </div>
   );
 }
