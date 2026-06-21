@@ -1,5 +1,5 @@
 import tailwind from "bun-plugin-tailwind";
-import { rm } from "node:fs/promises";
+import { rm, cp } from "node:fs/promises";
 import path from "node:path";
 
 const outdir = path.join(process.cwd(), "dist");
@@ -26,6 +26,14 @@ const result = await Bun.build({
 for (const output of result.outputs) {
   console.log(` ${path.relative(process.cwd(), output.path)}  ${(output.size / 1024).toFixed(1)} KB`);
 }
+
+// Copy the assets folder into dist so runtime-referenced images (data-driven
+// product/service images under assets/images/...) are served by static hosts at
+// the same /assets/... paths the dev server exposes. Mirrors the /assets/* route
+// in src/index.ts.
+await cp(path.join(process.cwd(), "assets"), path.join(outdir, "assets"), {
+  recursive: true,
+});
 
 // SPA fallback for static hosts (Cloudflare Pages / Netlify): route every path
 // to index.html so client-side routes like /services or /dashboard work on a
