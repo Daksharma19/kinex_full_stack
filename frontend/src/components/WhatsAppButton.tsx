@@ -5,7 +5,7 @@
  * ring draws the eye at rest.
  */
 const WHATSAPP_URL =
-  "https://wa.me/919868421785?text=Hi%20Doctor%2C%20I%20would%20like%20to%20book%20a%20consultation.%20Please%20let%20me%20know%20your%20availability.";
+  "https://wa.me/918076944004?text=Hi%20Doctor%2C%20I%20would%20like%20to%20book%20a%20consultation.%20Please%20let%20me%20know%20your%20availability.";
 
 export default function WhatsAppButton() {
   return (

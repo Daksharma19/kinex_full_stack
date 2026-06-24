@@ -43,7 +43,7 @@ export default function Hero() {
               Book Appointments
             </button>
             <a
-              href="tel:+919868421785"
+              href="tel:+918076944004"
               className="inline-flex items-center justify-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-lg font-bold text-lg shadow-xl hover:bg-emerald-700 transition-all active:scale-95"
             >
               <svg
