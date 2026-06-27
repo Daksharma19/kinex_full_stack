@@ -192,6 +192,53 @@ export function adminListUsers() {
   return apiFetch<{ users: UserRow[] }>("/admin/users");
 }
 
+/** One appointment row in a doctor's admin detail view. Amounts in rupees. */
+export interface DoctorDetailAppointment {
+  id: string;
+  mode: AppointmentMode;
+  scheduledAt: string;
+  status: AppointmentStatus;
+  patient: { name: string; email: string; phone: string | null };
+  payment: { status: PaymentStatus; amount: number; consultation: number | null } | null;
+}
+
+/** Full admin detail view for a single doctor. */
+export interface AdminDoctorDetails {
+  doctor: {
+    id: string;
+    specialization: string;
+    licenseNumber: string;
+    consultationFee: number | null;
+    status: DoctorStatus;
+    verifiedAt: string | null;
+    createdAt: string;
+    profile: {
+      name: string;
+      email: string;
+      phone: string | null;
+      photoUrl: string | null;
+      createdAt: string;
+    };
+  };
+  stats: {
+    totalAppointments: number;
+    completed: number;
+    confirmed: number;
+    cancelled: number;
+    /** Net consultation earnings (rupees) from VERIFIED payments. */
+    totalEarned: number;
+  };
+  appointments: DoctorDetailAppointment[];
+}
+
+/**
+ * ADMIN-only: full detail for a doctor — credentials, appointment activity and
+ * money earned — keyed by the doctor's profile (user) id.
+ */
+export function adminGetDoctorDetails(profileId: string) {
+  return apiFetch<AdminDoctorDetails>(`/admin/users/${profileId}/doctor-details`);
+}
+
 /** ADMIN-only: promote an existing registered user to ADMIN. */
 export function adminPromoteToAdmin(userId: string) {
   return apiFetch<{ message: string; profile: UserRow }>(

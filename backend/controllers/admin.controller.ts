@@ -97,6 +97,100 @@ export async function listUsers(req: Request, res: Response) {
 }
 
 /**
+ * Full detail view for a single doctor, keyed by the doctor's PROFILE id (what
+ * User Management has on hand). Returns the doctor's profile + credentials, a
+ * summary of their appointment activity, the money they've earned (net
+ * consultation only, from VERIFIED payments), and their full appointment list
+ * with the patient and payment for each. ADMIN-only via route middleware.
+ */
+export async function getDoctorDetails(req: Request, res: Response) {
+  try {
+    const profileId = req.params.id as string;
+    const doctor = await prisma.doctor.findUnique({
+      where: { profileId },
+      include: {
+        profile: {
+          select: { name: true, email: true, phone: true, photoUrl: true, createdAt: true },
+        },
+        appointments: {
+          include: {
+            patient: {
+              include: { profile: { select: { name: true, email: true, phone: true } } },
+            },
+            payment: {
+              select: { status: true, amountPaise: true, consultationPaise: true },
+            },
+          },
+          orderBy: { scheduledAt: "desc" },
+        },
+      },
+    });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Flatten appointments and convert the payment's BigInt paise to rupee numbers
+    // (`amount` = total charged, `consultation` = the doctor's net earning).
+    const appointments = doctor.appointments.map((a) => ({
+      id: a.id,
+      mode: a.mode,
+      scheduledAt: a.scheduledAt,
+      status: a.status,
+      patient: {
+        name: a.patient.profile.name,
+        email: a.patient.profile.email,
+        phone: a.patient.profile.phone,
+      },
+      payment: a.payment
+        ? {
+            status: a.payment.status,
+            amount: Number(a.payment.amountPaise) / 100,
+            consultation:
+              a.payment.consultationPaise != null
+                ? Number(a.payment.consultationPaise) / 100
+                : null,
+          }
+        : null,
+    }));
+
+    // Money earned = sum of net consultation from VERIFIED payments only
+    // (refunded/failed/pending don't count toward earnings).
+    const totalEarned = appointments.reduce((sum, a) => {
+      if (a.payment?.status === "VERIFIED" && a.payment.consultation != null) {
+        return sum + a.payment.consultation;
+      }
+      return sum;
+    }, 0);
+
+    const stats = {
+      totalAppointments: appointments.length,
+      completed: appointments.filter((a) => a.status === "COMPLETED").length,
+      confirmed: appointments.filter((a) => a.status === "CONFIRMED").length,
+      cancelled: appointments.filter((a) => a.status === "CANCELLED").length,
+      totalEarned,
+    };
+
+    return res.status(200).json({
+      doctor: {
+        id: doctor.id,
+        specialization: doctor.specialization,
+        licenseNumber: doctor.licenseNumber,
+        consultationFee: doctor.consultationFee,
+        status: doctor.status,
+        verifiedAt: doctor.verifiedAt,
+        createdAt: doctor.createdAt,
+        profile: doctor.profile,
+      },
+      stats,
+      appointments,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
  * Promote an existing registered user to ADMIN by flipping their profile role.
  * ADMIN-only via route middleware. 404 if the profile doesn't exist, 409 if the
  * user is already an admin.

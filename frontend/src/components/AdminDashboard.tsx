@@ -3,6 +3,7 @@ import {
   adminListDoctors,
   adminVerifyDoctor,
   adminListUsers,
+  adminGetDoctorDetails,
   adminPromoteToAdmin,
   adminDeleteUser,
   listMyAppointments,
@@ -12,12 +13,20 @@ import {
   type DoctorStatus,
   type UserRow,
   type Appointment,
+  type AdminDoctorDetails,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import StatusBadge from "./StatusBadge";
 import Loader from "./Loader";
 
 const STATUS_TABS: DoctorStatus[] = ["PENDING", "VERIFIED", "REJECTED"];
+
+type UserRoleTab = "PATIENT" | "DOCTOR" | "ADMIN";
+const USER_ROLE_TABS: { key: UserRoleTab; label: string }[] = [
+  { key: "PATIENT", label: "Patients" },
+  { key: "DOCTOR", label: "Doctors" },
+  { key: "ADMIN", label: "Admins" },
+];
 
 function initials(name: string) {
   return name
@@ -64,6 +73,13 @@ export default function AdminDashboard() {
   const [pendingCount, setPendingCount] = useState(0);
   const [tab, setTab] = useState<DoctorStatus>("PENDING");
   const [selected, setSelected] = useState<DoctorApplication | null>(null);
+
+  // User Management: which role bucket is shown, plus the doctor-details drill-in.
+  const [userRoleTab, setUserRoleTab] = useState<UserRoleTab>("PATIENT");
+  const [detailsFor, setDetailsFor] = useState<UserRow | null>(null);
+  const [details, setDetails] = useState<AdminDoctorDetails | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loadingAppts, setLoadingAppts] = useState(true);
@@ -138,6 +154,43 @@ export default function AdminDashboard() {
     }),
     [users, pendingCount]
   );
+
+  // Count per role (for the User Management tab badges) and the rows for the
+  // currently selected role bucket.
+  const roleCounts = useMemo(
+    () => ({
+      PATIENT: users.filter((u) => u.role === "PATIENT").length,
+      DOCTOR: users.filter((u) => u.role === "DOCTOR").length,
+      ADMIN: users.filter((u) => u.role === "ADMIN").length,
+    }),
+    [users]
+  );
+
+  const visibleUsers = useMemo(
+    () => users.filter((u) => u.role === userRoleTab),
+    [users, userRoleTab]
+  );
+
+  async function openDoctorDetails(u: UserRow) {
+    setDetailsFor(u);
+    setDetails(null);
+    setDetailsError(null);
+    setLoadingDetails(true);
+    try {
+      const data = await adminGetDoctorDetails(u.id);
+      setDetails(data);
+    } catch (err) {
+      setDetailsError((err as Error).message);
+    } finally {
+      setLoadingDetails(false);
+    }
+  }
+
+  function closeDoctorDetails() {
+    setDetailsFor(null);
+    setDetails(null);
+    setDetailsError(null);
+  }
 
   async function decide(id: string, status: "VERIFIED" | "REJECTED") {
     setActingId(id);
@@ -354,17 +407,42 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* User management */}
+          {/* User management — segregated by role (Patients / Doctors / Admins) */}
           <section className="bg-surface-container rounded-xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-primary">User Management</h3>
-              <span className="text-xs text-on-surface-variant">{users.length} users</span>
+            <div className="flex items-start justify-between mb-6 gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-primary">User Management</h3>
+                <p className="text-xs text-on-surface-variant">
+                  {roleCounts[userRoleTab]} {userRoleTab.toLowerCase()}
+                  {roleCounts[userRoleTab] === 1 ? "" : "s"} • {users.length} users total
+                </p>
+              </div>
+              <div className="flex gap-1 bg-surface-container-low rounded-lg p-1">
+                {USER_ROLE_TABS.map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={() => setUserRoleTab(t.key)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
+                      userRoleTab === t.key
+                        ? "bg-surface-container-lowest text-primary shadow-sm"
+                        : "text-on-surface-variant"
+                    }`}
+                  >
+                    {t.label}
+                    <span className="ml-1.5 opacity-60">{roleCounts[t.key]}</span>
+                  </button>
+                ))}
+              </div>
             </div>
             {loadingUsers ? (
               <Loader label="Loading users…" size={64} />
+            ) : visibleUsers.length === 0 ? (
+              <p className="text-sm text-on-surface-variant py-4">
+                No {userRoleTab.toLowerCase()}s yet.
+              </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[28rem] overflow-y-auto pr-1">
-                {users.map((u) => (
+                {visibleUsers.map((u) => (
                   <div
                     key={u.id}
                     className="bg-surface-container-lowest p-4 rounded-xl flex items-center justify-between border border-transparent hover:border-primary/20 transition-all gap-3"
@@ -381,6 +459,15 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      {u.role === "DOCTOR" && (
+                        <button
+                          onClick={() => openDoctorDetails(u)}
+                          title="Review doctor"
+                          className="px-3 py-1.5 text-[10px] font-bold text-primary hover:bg-primary-container/10 rounded-lg transition-colors"
+                        >
+                          Review
+                        </button>
+                      )}
                       {u.role !== "ADMIN" && (
                         <button
                           onClick={() => promote(u.id)}
@@ -513,6 +600,17 @@ export default function AdminDashboard() {
           onDecide={decide}
         />
       )}
+
+      {/* Doctor details modal (User Management → Review) */}
+      {detailsFor && (
+        <DoctorDetailsModal
+          user={detailsFor}
+          details={details}
+          loading={loadingDetails}
+          error={detailsError}
+          onClose={closeDoctorDetails}
+        />
+      )}
     </div>
   );
 }
@@ -617,6 +715,202 @@ function ModalRow({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between gap-4">
       <dt className="text-on-surface-variant">{label}</dt>
       <dd className="font-medium text-right break-all">{value}</dd>
+    </div>
+  );
+}
+
+function rupees(n: number) {
+  return `₹${n.toLocaleString("en-IN")}`;
+}
+
+/**
+ * Read-only deep-dive on a single doctor, opened from User Management. Shows the
+ * doctor's credentials, headline stats (incl. money earned), and the full list
+ * of their appointments with patient + payment. Data is fetched on open.
+ */
+function DoctorDetailsModal({
+  user,
+  details,
+  loading,
+  error,
+  onClose,
+}: {
+  user: UserRow;
+  details: AdminDoctorDetails | null;
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-container-lowest rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-4 p-6 border-b border-outline-variant/10">
+          <div className="h-14 w-14 rounded-full bg-secondary-container flex items-center justify-center text-primary font-bold shrink-0 overflow-hidden">
+            {details?.doctor.profile.photoUrl ? (
+              <img
+                src={details.doctor.profile.photoUrl}
+                alt={user.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              initials(user.name)
+            )}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-on-surface truncate">{user.name}</h2>
+            <p className="text-xs text-on-surface-variant truncate">
+              {details ? details.doctor.specialization : "Doctor"} • {user.email}
+            </p>
+          </div>
+          {details && (
+            <div className="ml-auto shrink-0">
+              <DoctorStatusPill status={details.doctor.status} />
+            </div>
+          )}
+        </div>
+
+        <div className="overflow-y-auto p-6 flex flex-col gap-6">
+          {loading ? (
+            <Loader label="Loading doctor details…" size={64} />
+          ) : error ? (
+            <p className="text-sm text-error">{error}</p>
+          ) : details ? (
+            <>
+              {/* Stat cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <StatCard label="Earned" value={rupees(details.stats.totalEarned)} highlight />
+                <StatCard label="Appointments" value={String(details.stats.totalAppointments)} />
+                <StatCard label="Completed" value={String(details.stats.completed)} />
+                <StatCard label="Upcoming" value={String(details.stats.confirmed)} />
+              </div>
+
+              {/* Credentials */}
+              <dl className="text-sm flex flex-col gap-2 bg-surface-container-low rounded-xl p-4">
+                <ModalRow label="Phone" value={details.doctor.profile.phone || "—"} />
+                <ModalRow label="License #" value={details.doctor.licenseNumber} />
+                <ModalRow
+                  label="Consultation Fee"
+                  value={
+                    details.doctor.consultationFee != null
+                      ? rupees(details.doctor.consultationFee)
+                      : "Not set"
+                  }
+                />
+                <ModalRow
+                  label="Joined"
+                  value={new Date(details.doctor.profile.createdAt).toLocaleDateString()}
+                />
+                <ModalRow
+                  label="Verified"
+                  value={
+                    details.doctor.verifiedAt
+                      ? new Date(details.doctor.verifiedAt).toLocaleDateString()
+                      : "—"
+                  }
+                />
+              </dl>
+
+              {/* Appointments */}
+              <div>
+                <h3 className="text-sm font-bold text-primary mb-3">
+                  Appointments ({details.appointments.length})
+                </h3>
+                {details.appointments.length === 0 ? (
+                  <p className="text-sm text-on-surface-variant">No appointments yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="text-[10px] uppercase tracking-widest text-outline font-bold border-b border-outline-variant/10">
+                          <th className="pb-3">Patient</th>
+                          <th className="pb-3">When</th>
+                          <th className="pb-3">Status</th>
+                          <th className="pb-3 text-right">Earned</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/10">
+                        {details.appointments.map((a) => {
+                          // Net earning counts only once the payment is VERIFIED.
+                          const earned =
+                            a.payment?.status === "VERIFIED" && a.payment.consultation != null
+                              ? a.payment.consultation
+                              : null;
+                          return (
+                            <tr key={a.id} className="hover:bg-surface-container-low transition-colors">
+                              <td className="py-2.5">
+                                <p className="text-sm font-medium text-on-surface">{a.patient.name}</p>
+                                <p className="text-[10px] text-on-surface-variant">
+                                  {a.mode === "ONLINE" ? "Online" : "Home visit"}
+                                </p>
+                              </td>
+                              <td className="py-2.5 text-sm text-on-surface-variant whitespace-nowrap">
+                                {new Date(a.scheduledAt).toLocaleDateString(undefined, {
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                                {" · "}
+                                {new Date(a.scheduledAt).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </td>
+                              <td className="py-2.5">
+                                <StatusBadge status={a.status} />
+                              </td>
+                              <td className="py-2.5 text-right text-sm font-bold text-on-surface whitespace-nowrap">
+                                {earned != null ? rupees(earned) : "—"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : null}
+        </div>
+
+        <div className="p-4 border-t border-outline-variant/10 flex justify-end">
+          <button
+            onClick={onClose}
+            className="text-sm font-bold text-primary px-4 py-2 rounded-lg hover:bg-surface-container-low transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl p-3 ${
+        highlight ? "bg-primary-container/40" : "bg-surface-container-low"
+      }`}
+    >
+      <p className="text-[10px] uppercase tracking-widest font-bold text-outline mb-1">{label}</p>
+      <p className={`text-lg font-black ${highlight ? "text-primary" : "text-on-surface"}`}>
+        {value}
+      </p>
     </div>
   );
 }
