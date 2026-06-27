@@ -7,6 +7,7 @@ import {
   listMySlots,
   createMySlots,
   deleteMySlot,
+  joinAppointment,
   type Appointment,
   type TimeSlot,
 } from "../lib/api";
@@ -76,6 +77,14 @@ function HomeVisitLocation({ appt }: { appt: Appointment }) {
   );
 }
 
+// A 1-hour online consultation is joinable from 10 min before the slot start
+// until 15 min after it ends (matches the backend join window).
+function isWithinJoinWindow(scheduledAt: string): boolean {
+  const start = new Date(scheduledAt).getTime();
+  const now = Date.now();
+  return now >= start - 10 * 60_000 && now <= start + 75 * 60_000;
+}
+
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
@@ -99,6 +108,11 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+  // Id of the appointment whose video room is currently being opened.
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+  // Ticks every 30s so the time-gated "Join" button appears/disappears on its
+  // own as a slot opens or closes, without the user refreshing.
+  const [, setNowTick] = useState(0);
 
   // Availability (time slots).
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -205,6 +219,11 @@ export default function DoctorDashboard() {
     if (isVerified) loadSlots();
   }, [isVerified, loadSlots]);
 
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
   // Toggle a 1-hour slot at a given start time: create it if absent, delete it
   // if present and unbooked. Booked slots are locked.
   async function toggleSlot(startsAt: Date) {
@@ -228,6 +247,20 @@ export default function DoctorDashboard() {
       toast.error((err as Error).message || "Could not update availability");
     } finally {
       setSlotBusy(null);
+    }
+  }
+
+  // Open the consultation room: asks the backend for the host join link
+  // (provisioning the room if needed) and opens it in a new tab.
+  async function handleJoin(id: string) {
+    setJoiningId(id);
+    try {
+      const { joinUrl } = await joinAppointment(id);
+      window.open(joinUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error((err as Error).message || "Could not open the consultation room");
+    } finally {
+      setJoiningId(null);
     }
   }
 
@@ -376,7 +409,7 @@ export default function DoctorDashboard() {
                           </td>
                           <td className="px-6 py-5"><StatusBadge status={a.status} /></td>
                           <td className="px-6 py-5">
-                            <RowActions appt={a} busy={actingId === a.id} onSet={setStatus} />
+                            <RowActions appt={a} busy={actingId === a.id} onSet={setStatus} onJoin={handleJoin} joining={joiningId === a.id} />
                           </td>
                         </tr>
                       ))}
@@ -430,7 +463,7 @@ export default function DoctorDashboard() {
                           {a.mode === "ONLINE" ? "Telehealth" : "In-person"}
                         </span>
                         <StatusBadge status={a.status} />
-                        <RowActions appt={a} busy={actingId === a.id} onSet={setStatus} />
+                        <RowActions appt={a} busy={actingId === a.id} onSet={setStatus} onJoin={handleJoin} joining={joiningId === a.id} />
                       </div>
                     </div>
                   );
@@ -683,28 +716,31 @@ function RowActions({
   appt,
   busy,
   onSet,
+  onJoin,
+  joining,
 }: {
   appt: Appointment;
   busy: boolean;
   onSet: (id: string, status: "COMPLETED" | "CANCELLED") => void;
+  onJoin: (id: string) => void;
+  joining: boolean;
 }) {
   // Pending appointments are awaiting the patient's payment; doctors act only
   // once an appointment is CONFIRMED. Completing is the doctor's only action —
-  // cancellation is admin-only. For ONLINE consultations, also offer a "Join"
-  // button that opens the doctor's host video room.
+  // cancellation is admin-only. For ONLINE consultations, during the slot window
+  // also offer a "Join" button that opens the doctor's host video room.
   if (appt.status === "CONFIRMED") {
     return (
       <div className="flex items-center gap-3">
-        {appt.mode === "ONLINE" && appt.hostRoomUrl && (
-          <a
-            href={appt.hostRoomUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 bg-primary-container text-on-primary px-3 py-1.5 rounded-lg font-bold text-xs hover:shadow-md transition-all whitespace-nowrap"
+        {appt.mode === "ONLINE" && isWithinJoinWindow(appt.scheduledAt) && (
+          <button
+            onClick={() => onJoin(appt.id)}
+            disabled={joining}
+            className="flex items-center gap-1 bg-primary-container text-on-primary px-3 py-1.5 rounded-lg font-bold text-xs hover:shadow-md transition-all disabled:opacity-50 whitespace-nowrap"
           >
             <span className="material-symbols-outlined text-sm">video_call</span>
-            Join
-          </a>
+            {joining ? "Opening…" : "Join"}
+          </button>
         )}
         <button
           onClick={() => onSet(appt.id, "COMPLETED")}

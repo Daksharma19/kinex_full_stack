@@ -9,6 +9,8 @@ appointmentRouter.use(requireAuth, requireProfile);
 appointmentRouter.post("/", requireRole("PATIENT"), appointmentController.createAppointment)
 appointmentRouter.post("/:id/payment/verify", requireRole("PATIENT"), appointmentController.verifyAppointmentPayment)
 appointmentRouter.delete("/:id/release", requireRole("PATIENT"), appointmentController.releaseAppointment)
+// Join the video room for a confirmed online appointment (participant-only).
+appointmentRouter.post("/:id/join", appointmentController.joinAppointment)
 appointmentRouter.get("/:id", appointmentController.getAppointmentById)
 appointmentRouter.get("/", appointmentController.listMyAppointments)
 appointmentRouter.patch("/:id/status", appointmentController.updateAppointmentStatus)

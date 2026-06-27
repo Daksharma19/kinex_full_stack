@@ -6,6 +6,7 @@ import {
   verifyAppointmentPayment,
   releaseAppointment,
   listDoctorSlots,
+  joinAppointment,
   updateMyProfile,
   uploadMyPhoto,
   type VerifiedDoctor,
@@ -40,6 +41,14 @@ function fileToDataUrl(file: File): Promise<string> {
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+}
+
+// A 1-hour online consultation is joinable from 10 min before the slot start
+// until 15 min after it ends (matches the backend join window).
+function isWithinJoinWindow(scheduledAt: string): boolean {
+  const start = new Date(scheduledAt).getTime();
+  const now = Date.now();
+  return now >= start - 10 * 60_000 && now <= start + 75 * 60_000;
 }
 
 // Group available slots by their calendar day for a tidy "pick a time" UI.
@@ -106,6 +115,11 @@ export default function PatientDashboard() {
   // Set after a successful ONLINE booking so we can surface the patient's video
   // join link right away (a confirmation banner with a "Join" button).
   const [confirmedRoomUrl, setConfirmedRoomUrl] = useState<string | null>(null);
+  // Id of the appointment whose video room is currently being opened.
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+  // Ticks every 30s so the time-gated "Join" button appears/disappears on its
+  // own as a slot opens or closes, without the user refreshing.
+  const [, setNowTick] = useState(0);
 
   // Profile snapshot
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -362,6 +376,25 @@ export default function PatientDashboard() {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
+  }, []);
+
+  // Open the consultation room: asks the backend for our join link (provisioning
+  // the room if needed) and opens it in a new tab.
+  async function handleJoin(appointmentId: string) {
+    setJoiningId(appointmentId);
+    try {
+      const { joinUrl } = await joinAppointment(appointmentId);
+      window.open(joinUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error((err as Error).message || "Could not open the consultation room");
+    } finally {
+      setJoiningId(null);
+    }
+  }
+
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
   }, []);
 
   async function onPhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
@@ -661,17 +694,18 @@ export default function PatientDashboard() {
                         <td className="py-4"><StatusBadge status={a.status} /></td>
                         <td className="py-4 text-right pr-4 rounded-r-xl">
                           <div className="flex items-center justify-end gap-2">
-                            {a.mode === "ONLINE" && a.status === "CONFIRMED" && a.roomUrl && (
-                              <a
-                                href={a.roomUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 bg-primary-container text-on-primary px-3 py-1.5 rounded-lg font-bold text-xs hover:shadow-md transition-all"
-                              >
-                                <span className="material-symbols-outlined text-sm">video_call</span>
-                                Join
-                              </a>
-                            )}
+                            {a.mode === "ONLINE" &&
+                              a.status === "CONFIRMED" &&
+                              isWithinJoinWindow(a.scheduledAt) && (
+                                <button
+                                  onClick={() => handleJoin(a.id)}
+                                  disabled={joiningId === a.id}
+                                  className="flex items-center gap-1 bg-primary-container text-on-primary px-3 py-1.5 rounded-lg font-bold text-xs hover:shadow-md transition-all disabled:opacity-50"
+                                >
+                                  <span className="material-symbols-outlined text-sm">video_call</span>
+                                  {joiningId === a.id ? "Opening…" : "Join"}
+                                </button>
+                              )}
                             <span
                               className="material-symbols-outlined text-primary-container align-middle"
                               title={a.mode === "ONLINE" ? "Online consultation" : "Home visit"}

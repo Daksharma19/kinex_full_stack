@@ -317,6 +317,100 @@ export async function getAppointmentById(req: Request, res: Response) {
   }
 }
 
+// How early a participant may enter the room before the slot start, and how long
+// after the slot end they may still join (grace), in milliseconds.
+const SLOT_MS = 60 * 60 * 1000; // a slot is 1 hour
+const JOIN_EARLY_MS = 10 * 60 * 1000;
+const JOIN_GRACE_MS = 15 * 60 * 1000;
+
+/**
+ * Join the video room for a confirmed ONLINE appointment — participant-only
+ * (the patient, the doctor, or an admin). Returns the caller's role-scoped join
+ * link (doctor → host link, patient → guest link), both from the SAME Whereby
+ * room so they meet together.
+ *
+ * The room is ensured lazily: if one wasn't created at payment time (e.g. the
+ * appointment was confirmed via the Razorpay webhook), it's created on the first
+ * join and stored, so the second participant reuses it. Joining is allowed from
+ * 10 min before the slot until 15 min after it ends.
+ */
+export async function joinAppointment(req: Request, res: Response) {
+  try {
+    const caller = req.profile!;
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: req.params.id as string },
+      include: {
+        patient: { include: { profile: { select: { id: true } } } },
+        doctor: { include: { profile: { select: { id: true } } } },
+      },
+    });
+    if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+    const isDoctorParty = appointment.doctor.profile.id === caller.id;
+    const isParticipant = appointment.patient.profile.id === caller.id || isDoctorParty;
+    if (!isParticipant && caller.role !== "ADMIN")
+      return res.status(403).json({ message: "Not allowed to join this appointment" });
+
+    if (appointment.mode !== "ONLINE")
+      return res.status(400).json({ message: "This is not an online appointment" });
+    if (appointment.status !== "CONFIRMED")
+      return res.status(409).json({ message: "This appointment is not confirmed" });
+
+    const start = appointment.scheduledAt.getTime();
+    const slotEnd = start + SLOT_MS;
+    const now = Date.now();
+    if (now < start - JOIN_EARLY_MS) {
+      const opensAt = new Date(start - JOIN_EARLY_MS).toISOString();
+      return res.status(425).json({ message: "The consultation room isn't open yet", opensAt });
+    }
+    if (now > slotEnd + JOIN_GRACE_MS)
+      return res.status(410).json({ message: "This consultation has ended" });
+
+    let roomUrl = appointment.roomUrl;
+    let hostRoomUrl = appointment.hostRoomUrl;
+
+    // Lazily provision the room the first time someone joins. The guarded
+    // updateMany (roomUrl still null) makes a race between the two participants
+    // a no-op for the loser, who then reuses the room the winner stored — so
+    // both always land in the same meeting.
+    if (!roomUrl || !hostRoomUrl) {
+      // Open now; keep the room alive until the slot end (or at least 20 min).
+      const end = new Date(Math.max(slotEnd, now + 20 * 60 * 1000));
+      const meeting = await createWherebyMeeting(new Date(), end);
+      if (!meeting)
+        return res.status(503).json({ message: "Video consultations are not configured" });
+
+      const claim = await prisma.appointment.updateMany({
+        where: { id: appointment.id, roomUrl: null },
+        data: {
+          meetingId: meeting.meetingId,
+          roomUrl: meeting.roomUrl,
+          hostRoomUrl: meeting.hostRoomUrl,
+        },
+      });
+      if (claim.count > 0) {
+        roomUrl = meeting.roomUrl;
+        hostRoomUrl = meeting.hostRoomUrl;
+      } else {
+        // Someone else created it first — use their stored room.
+        const fresh = await prisma.appointment.findUnique({
+          where: { id: appointment.id },
+          select: { roomUrl: true, hostRoomUrl: true },
+        });
+        roomUrl = fresh?.roomUrl ?? meeting.roomUrl;
+        hostRoomUrl = fresh?.hostRoomUrl ?? meeting.hostRoomUrl;
+      }
+    }
+
+    const joinUrl = isDoctorParty ? hostRoomUrl : roomUrl;
+    return res.status(200).json({ joinUrl });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
 /**
  * Razorpay webhook receiver — PUBLIC (no auth; Razorpay isn't logged in). The
  * route mounts `express.raw()` so `req.body` is the raw Buffer needed to verify

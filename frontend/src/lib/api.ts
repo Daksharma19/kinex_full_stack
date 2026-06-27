@@ -350,6 +350,17 @@ export function verifyAppointmentPayment(
   );
 }
 
+/**
+ * Join the video room for a confirmed online appointment. Lazily provisions the
+ * room if needed and returns the caller's role-scoped join link (doctor → host,
+ * patient → guest), both pointing at the same meeting.
+ */
+export function joinAppointment(appointmentId: string) {
+  return apiFetch<{ joinUrl: string }>(`/appointment/${appointmentId}/join`, {
+    method: "POST",
+  });
+}
+
 /** List the caller's appointments (patient: their bookings, doctor: with them). */
 export function listMyAppointments() {
   return apiFetch<{ appointments: Appointment[] }>("/appointment");
