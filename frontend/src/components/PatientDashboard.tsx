@@ -305,9 +305,17 @@ export default function PatientDashboard() {
       await loadAppointments();
       toast.success("Payment successful — appointment confirmed");
     } catch (err) {
-      const msg = (err as Error).message || "Could not complete the payment";
-      setError(msg);
-      toast.error(msg);
+      // Payment was cancelled (popup dismissed) or failed. Either way the
+      // invoice/order is dead: release the hold, free the slot, and drop the
+      // patient back to slot selection so they can start a clean booking.
+      const msg = (err as Error).message || "";
+      const cancelled = /cancel/i.test(msg);
+      toast.error(
+        cancelled
+          ? "Payment cancelled — please pick a slot and try again"
+          : `Payment failed — ${msg || "please try again"}`
+      );
+      await cancelInvoice();
     } finally {
       setPaying(false);
     }
@@ -319,6 +327,7 @@ export default function PatientDashboard() {
     if (!pending) return;
     const apptId = pending.appointment.id;
     setPending(null);
+    setError(null);
     try {
       await releaseAppointment(apptId);
     } catch {
