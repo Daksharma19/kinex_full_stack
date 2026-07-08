@@ -141,3 +141,57 @@
     animation: none !important;
   }
 }
+
+/* Breathing clinic-location map marker (mirrors the WhatsApp button's pulse) */
+.kinex-nav-marker {
+  background: transparent;
+  border: none;
+}
+.kinex-nav-marker .kinex-nav-img {
+  width: 40px;
+  height: 40px;
+  display: block;
+  transform-origin: center bottom;
+  animation: kinex-breathe 2s ease-in-out infinite;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+}
+/* Radar ring emanating from the pin's tip */
+.kinex-nav-marker .kinex-nav-ring {
+  position: absolute;
+  left: 20px;
+  top: 36px;
+  width: 34px;
+  height: 34px;
+  margin-left: -17px;
+  margin-top: -17px;
+  border-radius: 9999px;
+  background: rgba(13, 115, 119, 0.45);
+  animation: kinex-ping 1.9s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+@keyframes kinex-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+@keyframes kinex-ping {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.7;
+  }
+  80%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion) {
+  .kinex-nav-marker .kinex-nav-img,
+  .kinex-nav-marker .kinex-nav-ring {
+    animation: none !important;
+  }
+}

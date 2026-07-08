@@ -118,33 +118,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // 1. Hydrate from any persisted session on first load.
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      // Enforce the idle timeout: if a persisted session has been idle longer
-      // than the limit, sign out instead of silently restoring it.
-      if (session) {
-        const last = readLastActivity();
-        if (last && Date.now() - last > IDLE_LIMIT_MS) {
-          clearActivity();
-          await supabase.auth.signOut();
-          setSession(null);
-          setLoading(false);
-          return;
-        }
-        markActivity(); // seed/refresh for pre-existing sessions
+    // Enforce the idle timeout for a persisted (restored) session: if it's been
+    // idle past the limit — or has no recorded activity at all — sign out instead
+    // of silently restoring it. This is what stops a session left open yesterday
+    // from logging the next person in. Returns true if it signed out.
+    async function enforceIdleTimeout(current: Session | null): Promise<boolean> {
+      if (!current) return false;
+      const last = readLastActivity();
+      if (!last || Date.now() - last > IDLE_LIMIT_MS) {
+        clearActivity();
+        await supabase.auth.signOut(); // fires SIGNED_OUT, which clears state
+        return true;
       }
-      setSession(session);
-      await loadProfile(session);
-      setLoading(false);
-    });
+      return false;
+    }
 
-    // 2. Keep in sync with all future auth events.
+    // Single source of truth for auth: onAuthStateChange fires INITIAL_SESSION on
+    // subscribe (hydrating any persisted session), plus every later login/logout/
+    // token-refresh. Handling them all here avoids the getSession-vs-event race
+    // that previously let an idle persisted session slip past the timeout check.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // A fresh interactive login starts a new activity window.
+      if (event === "SIGNED_IN") markActivity();
+      if (event === "SIGNED_OUT") clearActivity();
+
+      // A restored session on first load must pass the idle check before we accept
+      // it. If it fails, signOut() emits SIGNED_OUT which drives the real cleanup.
+      if (event === "INITIAL_SESSION" && (await enforceIdleTimeout(session))) {
+        setLoading(false);
+        return;
+      }
+
       setSession(session);
-      await loadProfile(session);
+      // Unblock the UI as soon as the session is known — do NOT wait on the backend
+      // profile fetch, which can be slow on a cold backend and was leaving the
+      // navbar blank meanwhile. The navbar only needs the session to decide what to
+      // show; name/photo fill in when the profile arrives (tracked by profileLoading).
       setLoading(false);
+      void loadProfile(session);
     });
 
     return () => subscription.unsubscribe();

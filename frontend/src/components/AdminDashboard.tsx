@@ -63,7 +63,7 @@ function DoctorStatusPill({ status }: { status: DoctorStatus }) {
  * Admin console, styled after the Kinex "Systems Overview" mockup. Single page:
  * real summary metrics, provider (doctor) applications with verify/reject, user
  * management with promote/delete, and a read-only admin profile card. All data
- * comes from the existing admin endpoints — metric numbers are computed, not mocked.
+ * comes from the existing admin endpoints - metric numbers are computed, not mocked.
  */
 export default function AdminDashboard() {
   const { profile } = useAuth();
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
       const { doctors } = await adminListDoctors("PENDING");
       setPendingCount(doctors.length);
     } catch {
-      /* metric only — ignore */
+      /* metric only - ignore */
     }
   }, []);
 
@@ -407,7 +407,7 @@ export default function AdminDashboard() {
             </div>
           </section>
 
-          {/* User management — segregated by role (Patients / Doctors / Admins) */}
+          {/* User management - segregated by role (Patients / Doctors / Admins) */}
           <section className="bg-surface-container rounded-xl p-6">
             <div className="flex items-start justify-between mb-6 gap-4">
               <div>
@@ -495,7 +495,7 @@ export default function AdminDashboard() {
             )}
           </section>
 
-          {/* Appointments — admin can cancel any non-final appointment */}
+          {/* Appointments - admin can cancel any non-final appointment */}
           <section className="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/10">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -575,8 +575,8 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="space-y-5">
-              <ReadField label="Full Name" value={profile?.name || "—"} />
-              <ReadField label="Email Address" value={profile?.email || "—"} />
+              <ReadField label="Full Name" value={profile?.name || "-"} />
+              <ReadField label="Email Address" value={profile?.email || "-"} />
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] uppercase font-black text-outline-variant tracking-wider">
                   Access Tier
@@ -678,7 +678,7 @@ function ReviewModal({
         </div>
         <dl className="text-sm flex flex-col gap-2 mt-2">
           <ModalRow label="Email" value={app.profile.email} />
-          <ModalRow label="Phone" value={app.profile.phone || "—"} />
+          <ModalRow label="Phone" value={app.profile.phone || "-"} />
           <ModalRow label="Specialization" value={app.specialization} />
           <ModalRow label="License #" value={app.licenseNumber} />
           <ModalRow label="Applied" value={new Date(app.createdAt).toLocaleString()} />
@@ -793,7 +793,7 @@ function DoctorDetailsModal({
 
               {/* Credentials */}
               <dl className="text-sm flex flex-col gap-2 bg-surface-container-low rounded-xl p-4">
-                <ModalRow label="Phone" value={details.doctor.profile.phone || "—"} />
+                <ModalRow label="Phone" value={details.doctor.profile.phone || "-"} />
                 <ModalRow label="License #" value={details.doctor.licenseNumber} />
                 <ModalRow
                   label="Consultation Fee"
@@ -812,7 +812,7 @@ function DoctorDetailsModal({
                   value={
                     details.doctor.verifiedAt
                       ? new Date(details.doctor.verifiedAt).toLocaleDateString()
-                      : "—"
+                      : "-"
                   }
                 />
               </dl>
@@ -865,7 +865,7 @@ function DoctorDetailsModal({
                                 <StatusBadge status={a.status} />
                               </td>
                               <td className="py-2.5 text-right text-sm font-bold text-on-surface whitespace-nowrap">
-                                {earned != null ? rupees(earned) : "—"}
+                                {earned != null ? rupees(earned) : "-"}
                               </td>
                             </tr>
                           );

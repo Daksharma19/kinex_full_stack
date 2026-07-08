@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { isValidEmail, sanitizeText } from "@/lib/validation";
+import ClinicLocationCard from "./ClinicLocationCard";
 
-const SUPPORT_EMAIL = "support@kinex.health";
+const SUPPORT_EMAIL = "kinexwellnessrehab@gmail.com";
 
 const FAQS = [
   {
@@ -62,7 +63,14 @@ export default function ContactPage() {
         browse the quick answers below.
       </p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      {/* Clinic location: wide map, address, hours + open-in-maps */}
+      <div className="mb-10">
+        <ClinicLocationCard />
+      </div>
+
+      {/* items-start keeps the form at its natural height instead of stretching
+          to match the info column. */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
         {/* Contact form */}
         <form
           onSubmit={onSubmit}
@@ -83,18 +91,15 @@ export default function ContactPage() {
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" className="self-start">Send message</Button>
-          <p className="text-xs text-on-surface-variant">
-            This opens your email app addressed to {SUPPORT_EMAIL}.
-          </p>
         </form>
 
-        {/* Support info + help */}
+        {/* Support info */}
         <div className="space-y-6">
           <div className="bg-surface-container-low rounded-xl p-6">
             <h3 className="font-bold text-on-surface mb-3">Reach us</h3>
             <p className="text-sm text-on-surface-variant flex items-center gap-2 mb-2">
               <span className="material-symbols-outlined text-base text-primary">mail</span>
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary underline">{SUPPORT_EMAIL}</a>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary underline break-all">{SUPPORT_EMAIL}</a>
             </p>
             <p className="text-sm text-on-surface-variant flex items-center gap-2">
               <span className="material-symbols-outlined text-base text-primary">schedule</span>
@@ -107,7 +112,7 @@ export default function ContactPage() {
               Join Kinex and start taking appointments.
             </p>
             <Link to="/apply-doctor" className="text-primary font-bold text-sm underline">
-              Apply as a Doctor →
+              Apply as a Doctor 
             </Link>
           </div>
         </div>

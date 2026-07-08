@@ -2,7 +2,7 @@
  * Terms & Conditions page. Standard medical / telehealth terms (a commonly used
  * template) shown to users before signup. Linked from the signup checkbox.
  *
- * NOTE: this is a generic sample for product use — have it reviewed by legal
+ * NOTE: this is a generic sample for product use - have it reviewed by legal
  * counsel before relying on it in production.
  */
 export default function TermsPage() {
