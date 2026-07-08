@@ -79,7 +79,7 @@ export default function ClinicLocationCard() {
       {/* Map - fills the left half on large screens */}
       <div
         ref={mapDivRef}
-        className="w-full h-64 lg:h-auto min-h-[16rem] bg-surface-container-high"
+        className="w-full h-64 lg:h-auto min-h-64 bg-surface-container-high"
       />
 
       {/* Details */}
