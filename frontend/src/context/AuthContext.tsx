@@ -118,20 +118,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // Enforce the idle timeout for a persisted (restored) session: if it's been
-    // idle past the limit — or has no recorded activity at all — sign out instead
+    // Enforce the idle timeout for a persisted (restored) session: if it has a
+    // recorded activity timestamp that's older than the limit, sign out instead
     // of silently restoring it. This is what stops a session left open yesterday
     // from logging the next person in. Returns true if it signed out.
+    //
+    // We only expire a KNOWN-stale session. A session with no recorded activity
+    // yet must NOT be signed out here — that's exactly the case for a fresh
+    // OAuth (Google) login, which returns via a full page load and surfaces as
+    // INITIAL_SESSION before markActivity() has run. Signing it out here was
+    // bouncing every Google sign-in straight back to /login. The [session] effect
+    // below marks activity once the session is accepted, so tracking still starts.
     async function enforceIdleTimeout(current: Session | null): Promise<boolean> {
       if (!current) return false;
       const last = readLastActivity();
-      if (!last || Date.now() - last > IDLE_LIMIT_MS) {
+      if (last && Date.now() - last > IDLE_LIMIT_MS) {
         clearActivity();
         await supabase.auth.signOut(); // fires SIGNED_OUT, which clears state
         return true;
       }
       return false;
     }
+
+    // Detect an in-progress OAuth / magic-link callback at load. On such returns
+    // the URL carries a `code` (PKCE) or `#access_token` (implicit) that the
+    // client exchanges into a session via a LATER SIGNED_IN event — the initial
+    // INITIAL_SESSION fires with null first. We must NOT report "no session"
+    // during that window, or ProtectedRoute bounces to /login before the session
+    // lands (Google sign-in appeared to "do nothing" even though the user was
+    // created). While a callback is pending we keep loading=true until a session
+    // arrives, with a safety timeout so a failed callback can't hang the UI.
+    const isAuthCallback =
+      new URLSearchParams(window.location.search).has("code") ||
+      /[#&](access_token|refresh_token)=/.test(window.location.hash);
+    let awaitingCallbackSession = isAuthCallback;
+    const callbackSafety = isAuthCallback
+      ? setTimeout(() => {
+          awaitingCallbackSession = false;
+          setLoading(false);
+        }, 5000)
+      : null;
 
     // Single source of truth for auth: onAuthStateChange fires INITIAL_SESSION on
     // subscribe (hydrating any persisted session), plus every later login/logout/
@@ -147,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // A restored session on first load must pass the idle check before we accept
       // it. If it fails, signOut() emits SIGNED_OUT which drives the real cleanup.
       if (event === "INITIAL_SESSION" && (await enforceIdleTimeout(session))) {
+        awaitingCallbackSession = false;
         setLoading(false);
         return;
       }
@@ -156,11 +183,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // profile fetch, which can be slow on a cold backend and was leaving the
       // navbar blank meanwhile. The navbar only needs the session to decide what to
       // show; name/photo fill in when the profile arrives (tracked by profileLoading).
-      setLoading(false);
+      // Exception: during an OAuth callback keep loading until the session actually
+      // arrives, so we don't flash a redirect to /login on the interim null event.
+      if (session) awaitingCallbackSession = false;
+      if (!awaitingCallbackSession) setLoading(false);
       void loadProfile(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (callbackSafety) clearTimeout(callbackSafety);
+    };
   }, []);
 
   // While logged in, track activity and enforce the idle timeout.
