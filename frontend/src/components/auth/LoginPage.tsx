@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { getSignInMethods } from "../../lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,11 +46,40 @@ export default function LoginPage() {
         setUnconfirmed(true);
         setError("Please confirm your email before logging in.");
       } else {
-        setError(error.message);
+        // Invalid credentials — but if this email is actually a social (Google)
+        // account with no password, nudge them to the right method instead of the
+        // confusing "invalid credentials".
+        setError(await providerMismatchMessage(email, error.message));
       }
       return;
     }
     navigate(from, { replace: true });
+  }
+
+  // After a failed password login, ask the backend which providers this email is
+  // registered with. If it's a social-only account (e.g. Google, no password),
+  // return a helpful message; otherwise fall back to the original error.
+  async function providerMismatchMessage(
+    email: string,
+    fallback: string
+  ): Promise<string> {
+    const PRETTY: Record<string, string> = {
+      google: "Google",
+      github: "GitHub",
+      azure: "Microsoft",
+    };
+    try {
+      const { providers } = await getSignInMethods(email);
+      const hasPassword = providers.includes("email");
+      const social = providers.filter((p) => p !== "email");
+      if (!hasPassword && social.length > 0) {
+        const names = social.map((p) => PRETTY[p] ?? p).join(" / ");
+        return `This account was created with ${names}. Please use “Continue with ${names}” to sign in.`;
+      }
+    } catch {
+      /* lookup failed — fall through to the generic error */
+    }
+    return fallback;
   }
 
   async function resendConfirmation() {

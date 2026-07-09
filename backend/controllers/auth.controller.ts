@@ -1,7 +1,41 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../db.ts";
 import { supabaseAdmin } from "../utils/supabase.ts";
-import { normalizePhoneOrThrow, sanitizeString } from "../utils/validation.ts";
+import {
+  isValidEmail,
+  normalizePhoneOrThrow,
+  sanitizeString,
+} from "../utils/validation.ts";
+
+/**
+ * Public: return the sign-in providers registered for an email (e.g. ["google"]
+ * or ["email"] or ["email","google"]). Used by the login page to nudge a user who
+ * signed up with Google but is trying email/password — the frontend only calls
+ * this AFTER a failed password attempt, so it doesn't broadly leak account
+ * existence. Returns an empty list for unknown emails (or on any lookup error) so
+ * login degrades gracefully.
+ */
+export async function getSignInMethods(req: Request, res: Response) {
+  try {
+    const email = String(req.body?.email ?? "").trim();
+    if (!isValidEmail(email)) {
+      return res.status(200).json({ providers: [] });
+    }
+    // Query Supabase's auth schema directly for this email's identities. Emails
+    // are unique in auth.users; identities.provider is 'email', 'google', etc.
+    const rows = await prisma.$queryRaw<{ provider: string }[]>`
+      SELECT DISTINCT i.provider
+      FROM auth.identities i
+      JOIN auth.users u ON u.id = i.user_id
+      WHERE lower(u.email) = lower(${email})
+    `;
+    return res.status(200).json({ providers: rows.map((r) => r.provider) });
+  } catch (error) {
+    console.error("Error fetching sign-in methods:", error);
+    // Never block login on this helper — treat as "unknown".
+    return res.status(200).json({ providers: [] });
+  }
+}
 
 /**
  * Create the application profile for an already-authenticated Supabase user.

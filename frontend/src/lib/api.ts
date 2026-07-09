@@ -104,6 +104,18 @@ export function uploadDoctorPhoto(dataUrl: string) {
   });
 }
 
+/**
+ * Which sign-in providers an email is registered with (e.g. ["google"]). Called
+ * by the login page only after a failed password attempt, to tell a Google-signup
+ * user to use "Continue with Google". Returns [] for unknown emails.
+ */
+export function getSignInMethods(email: string) {
+  return apiFetch<{ providers: string[] }>("/auth/signin-methods", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
 /** Load the authenticated user's app profile (null if not onboarded yet). */
 export async function getMe(): Promise<MeResponse> {
   try {
