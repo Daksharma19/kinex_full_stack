@@ -109,7 +109,7 @@ export default function ContactPage() {
           <div className="bg-surface-container-low rounded-xl p-6">
             <h3 className="font-bold text-on-surface mb-2">Are you a provider?</h3>
             <p className="text-sm text-on-surface-variant mb-3">
-              Join Kinex and start taking appointments.
+              Join Physiotic and start taking appointments.
             </p>
             <Link to="/apply-doctor" className="text-primary font-bold text-sm underline">
               Apply as a Doctor 

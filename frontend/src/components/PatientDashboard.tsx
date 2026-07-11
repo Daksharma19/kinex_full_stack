@@ -283,7 +283,7 @@ export default function PatientDashboard() {
     const apptId = pending.appointment.id;
     try {
       const result = await openRazorpayCheckout(pending.payment, {
-        name: "Kinex Healthcare",
+        name: "Physiotic",
         description: `Consultation with Dr. ${selected.profile.name}`,
         prefill: {
           name: profile?.name || undefined,

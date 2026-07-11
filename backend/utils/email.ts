@@ -81,7 +81,7 @@ export function buildReminderEmail(params: {
         </a>
       </p>
       <p style="font-size:13px;color:#666">Or paste this link into your browser:<br>${params.roomUrl}</p>
-      <p style="font-size:13px;color:#666">See you there,<br>The Kinex Wellness & Rehab team</p>
+      <p style="font-size:13px;color:#666">See you there,<br>The Physiotic team</p>
     </div>`;
   const text = `Hi ${params.patientName},
 
@@ -89,6 +89,6 @@ Reminder: your online consultation with Dr. ${params.doctorName} is scheduled fo
 
 Join your consultation here: ${params.roomUrl}
 
-— The Kinex Wellness & Rehab team`;
+- The Physiotic team`;
   return { subject, html, text };
 }

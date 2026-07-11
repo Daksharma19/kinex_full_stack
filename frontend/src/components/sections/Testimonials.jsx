@@ -1,7 +1,7 @@
 const TESTIMONIALS = [
   {
     quote:
-      "Kinex completely transformed my recovery. The neuromuscular therapy erased years of chronic back pain in just weeks.",
+      "Physiotic completely transformed my recovery. The neuromuscular therapy erased years of chronic back pain in just weeks.",
     name: "Ananya Sharma",
     role: "Marathon Runner",
     rating: 5,
@@ -22,7 +22,7 @@ const TESTIMONIALS = [
   },
   {
     quote:
-      "Reduced wait times and a team that truly listens. Kinex respects both my health and my time.",
+      "Reduced wait times and a team that truly listens. Physiotic respects both my health and my time.",
     name: "Arjun Nair",
     role: "Sports Injury",
     rating: 4,

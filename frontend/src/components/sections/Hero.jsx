@@ -31,8 +31,8 @@ export default function Hero() {
             Recovery
           </h1>
           <p className="text-lg md:text-xl text-on-primary-container font-light leading-relaxed mb-10 opacity-90">
-            Kinex integrates world-class medical expertise with a
-            compassion-inspired patient experience. Advanced healthcare,
+            Physiotic integrates world-class medical expertise with a
+            compassion-inspired patient experience. Precision in all recoveries,
             delivered with human warmth.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">

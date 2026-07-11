@@ -34,13 +34,13 @@ export default function Footer() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-7xl mx-auto">
         <div className="col-span-1 md:col-span-1">
           <div className="flex items-center gap-3 mb-6">
-            <img alt="Kinex Logo" className="h-8 w-auto" src={LOGO} />
+            <img alt="Physiotic Logo" className="h-8 w-auto" src={LOGO} />
             <span className="font-headline font-bold text-lg text-primary">
-              Kinex Wellness & Rehab
+              Physiotic
             </span>
           </div>
-          <p className="font-body text-on-surface-variant text-sm leading-relaxed mb-6">
-            © Kinex Wellness & Rehab.
+          <p className="font-body text-primary text-sm font-medium italic mb-3">
+            Precision in all recoveries
           </p>
           <p className="font-body text-on-surface-variant text-sm mb-3">
             Are you a healthcare provider?
@@ -69,6 +69,11 @@ export default function Footer() {
             </ul>
           </div>
         ))}
+      </div>
+      <div className="max-w-7xl mx-auto mt-12 pt-6 border-t border-outline-variant text-center">
+        <p className="font-body text-on-surface-variant text-sm">
+          © Physiotic. All rights reserved.
+        </p>
       </div>
     </footer>
   );
