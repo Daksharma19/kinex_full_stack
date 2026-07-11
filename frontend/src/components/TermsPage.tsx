@@ -17,7 +17,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-bold mb-2">1. Acceptance of Terms</h2>
           <p className="text-on-surface-variant">
-            By creating an account or using Kinex Wellness &amp; Rehab (the
+            By creating an account or using Physiotic (the
             "Platform"), you agree to be bound by these Terms &amp; Conditions and
             our Privacy Policy. If you do not agree, you must not use the Platform.
             You confirm that you are at least 18 years of age, or are using the
@@ -146,7 +146,7 @@ export default function TermsPage() {
           </h2>
           <p className="text-on-surface-variant mb-6">
             The following terms apply to medical and physiotherapy professionals who
-            apply to join Kinex Wellness &amp; Rehab through the recruitment portal.
+            apply to join Physiotic through the recruitment portal.
           </p>
 
           <div className="space-y-6">
@@ -163,7 +163,7 @@ export default function TermsPage() {
             <div>
               <h3 className="text-lg font-bold mb-2">Credential Verification</h3>
               <p className="text-on-surface-variant">
-                Kinex Wellness reserves the right to contact the respective licensing
+                Physiotic reserves the right to contact the respective licensing
                 boards (e.g. Medical Council, Physiotherapy Council) to verify the
                 standing of the applicant's license and check for any history of
                 malpractice or disciplinary action.
@@ -174,7 +174,7 @@ export default function TermsPage() {
               <h3 className="text-lg font-bold mb-2">Data Protection &amp; Privacy</h3>
               <p className="text-on-surface-variant">
                 All personal data, CVs, and contact information submitted through this
-                portal will be kept strictly confidential. Kinex Wellness will not
+                portal will be kept strictly confidential. Physiotic will not
                 share, sell, or distribute applicant data to third-party agencies
                 without explicit consent.
               </p>
@@ -185,16 +185,15 @@ export default function TermsPage() {
               <p className="text-on-surface-variant">
                 By submitting this form, the applicant agrees to receive
                 communications (via email) regarding their application status,
-                interview schedules, and future career opportunities at Kinex Wellness
-                &amp; Rehab.
+                interview schedules, and future career opportunities at Physiotic.
               </p>
             </div>
 
             <div>
               <h3 className="text-lg font-bold mb-2">Document Retention</h3>
               <p className="text-on-surface-variant">
-                Applications and uploaded documents may be retained in the Kinex
-                Wellness database for up to 12 months for future openings, even if the
+                Applications and uploaded documents may be retained in the Physiotic
+                database for up to 12 months for future openings, even if the
                 current application is unsuccessful. Applicants may request data
                 deletion by contacting the clinic directly.
               </p>

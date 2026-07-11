@@ -1,8 +1,10 @@
 <div align="center">
 
-# Kinex Wellness & Rehab
+# Physiotic
 
-**A full-stack doctor-appointment & telehealth platform — book consultations, manage patients, run a clinic.**
+**Precision in all recoveries.**
+
+**A full-stack doctor-appointment & telehealth platform: book consultations, manage patients, run a clinic.**
 
 [![Frontend](https://img.shields.io/badge/Frontend-Vercel-000?logo=vercel)](https://kinex-frontend.vercel.app)
 [![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&logoColor=000)](https://kinex-backend.onrender.com)
@@ -19,7 +21,7 @@
 
 ## Overview
 
-Kinex is a production-deployed healthcare platform that connects **patients**, **doctors**, and **clinic administrators** in a single application. Patients discover providers and book paid appointments; doctors manage their schedules and consultations; admins verify practitioners and govern the platform.
+Physiotic is a production-deployed healthcare platform that connects **patients**, **doctors**, and **clinic administrators** in a single application. Patients discover providers and book paid appointments; doctors manage their schedules and consultations; admins verify practitioners and govern the platform.
 
 It is built around three role-based experiences served from one React SPA, backed by a Bun + Express API and Supabase (Auth, Postgres, Storage).
 

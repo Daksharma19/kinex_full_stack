@@ -9,7 +9,7 @@ declare global {
 }
 // Single source of truth for the clinic's location & hours.
 const CLINIC = {
-  name: "Kinex Wellness & Rehab",
+  name: "Physiotic Care",
   address: "Plot no. S-9, Dayanand Park, Shalimar garden extension, Ghaziabad, Uttar Pradesh, 201005",
   latitude: 28.691730863319652,
   longitude: 77.34159832311803,
