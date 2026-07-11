@@ -11,10 +11,10 @@ declare global {
 const CLINIC = {
   name: "Physiotic Care",
   address: "Plot no. S-9, Dayanand Park, Shalimar garden extension, Ghaziabad, Uttar Pradesh, 201005",
-  latitude: 28.691730863319652,
-  longitude: 77.34159832311803,
+  latitude: 28.69136310260634,
+  longitude: 77.34099761858069,
   hours: [
-    { day: "Mon - Fri", time: "08:00 - 20:00" },
+    { day: "Mon - Fri", time: "08:00 - 20:00" },  
     { day: "Saturday", time: "09:00 - 16:00" },
     { day: "Sunday", time: "Emergency Only", emergency: true },
   ],

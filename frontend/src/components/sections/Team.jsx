@@ -1,16 +1,17 @@
-import doctor from "../../../assets/images/doctor.png";
+import drmaheshwar from "../../../assets/images/drmaheshwar.png";
+import drvarsha from "../../../assets/images/drvarsha.png";
 const TEAM = [
   {
     name: "Dr. Maheshwar Prajapati",
     role: "Lead Physiotherapist",
     bio: "Specializing in advanced musculoskeletal recovery, Dr. Prajapati integrates traditional techniques with modern kinetic science. His approach focuses on precision-based movement patterns and neurological re-education to ensure long-term physical resilience.",
-    image: doctor,
+    image: drmaheshwar,
   },
   {
     name: "Dr. Varsha",
     role: "Clinical Director",
     bio: "With a focus on holistic patient journeys, Dr. Varsha oversees the integration of clinical excellence and wellness protocols. Her leadership ensures that every patient's recovery is supported by empathetic guidance and evidence-based clinical strategies.",
-    image: null,
+    image: drvarsha,
   },
 ];
 
