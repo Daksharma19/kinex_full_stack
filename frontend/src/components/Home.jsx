@@ -3,6 +3,7 @@ import Stats from "./sections/Stats.jsx";
 import Services from "./sections/Services.jsx";
 import Team from "./sections/Team.jsx";
 import ChooseUs from "./sections/ChooseUs.jsx";
+import ServicesShowcase from "./sections/ServicesShowcase.jsx";
 import Testimonials from "./sections/Testimonials.jsx";
 import Newsletter from "./sections/Newsletter.jsx";
 
@@ -16,6 +17,7 @@ export default function Home() {
       <Services />
       <Team />
       <ChooseUs />
+      <ServicesShowcase />
       <Testimonials />
       <Newsletter />
     </>
