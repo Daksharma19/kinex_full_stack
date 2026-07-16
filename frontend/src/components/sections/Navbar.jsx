@@ -141,7 +141,7 @@ export default function Navbar() {
       <div className="flex justify-between items-center px-6 md:px-8 h-20 max-w-7xl mx-auto">
         <Link to="/" className="flex items-center gap-3 min-w-0">
           <img alt="Physiotic Logo" className="h-10 w-auto shrink-0" src={LOGO} />
-          <span className="text-base sm:text-lg lg:text-xl font-headline font-bold tracking-tight text-primary truncate">
+          <span className="text-base sm:text-lg lg:text-xl font-headline font-bold tracking-tight text-[#05223D] truncate">
             Physiotic
           </span>
         </Link>
@@ -226,7 +226,7 @@ export default function Navbar() {
                     <AvatarContent profile={profile} user={user} />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-headline font-bold text-on-surface truncate">
+                    <p className="font-headline font-bold text-[#08345e] truncate">
                       Hello, {displayName(profile, user)}!
                     </p>
                     {user?.email && (
