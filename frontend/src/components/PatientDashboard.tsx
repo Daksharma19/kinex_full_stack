@@ -4,6 +4,7 @@ import {
   listMyAppointments,
   bookAppointment,
   verifyAppointmentPayment,
+  resumePayment,
   releaseAppointment,
   listDoctorSlots,
   joinAppointment,
@@ -112,6 +113,8 @@ export default function PatientDashboard() {
     invoice: PaymentInvoice;
   } | null>(null);
   const [paying, setPaying] = useState(false);
+  // Appointment id currently being paid from the history table ("pay later" flow).
+  const [payingApptId, setPayingApptId] = useState<string | null>(null);
   // Set after a successful ONLINE booking so we can surface the patient's video
   // join link right away (a confirmation banner with a "Join" button).
   const [confirmedRoomUrl, setConfirmedRoomUrl] = useState<string | null>(null);
@@ -318,6 +321,45 @@ export default function PatientDashboard() {
       await cancelInvoice();
     } finally {
       setPaying(false);
+    }
+  }
+
+  // "Pay later": keep the booked (PENDING/unpaid) appointment and its slot, but
+  // don't pay now. The patient can pay from their appointment history later.
+  async function payLater() {
+    if (!pending) return;
+    setPending(null);
+    setSelected(null);
+    setShowBooking(false);
+    setError(null);
+    await loadAppointments();
+    toast.success("Appointment booked — you can pay later from your appointments");
+  }
+
+  // Resume payment for an already-booked PENDING appointment (from history).
+  async function payPendingAppointment(appt: Appointment) {
+    setPayingApptId(appt.id);
+    try {
+      const { payment, doctorName } = await resumePayment(appt.id);
+      const result = await openRazorpayCheckout(payment, {
+        name: "Kinex Healthcare",
+        description: `Consultation with Dr. ${doctorName}`,
+        prefill: {
+          name: profile?.name || undefined,
+          email: profile?.email || undefined,
+          contact: phoneOnFile || undefined,
+        },
+      });
+      await verifyAppointmentPayment(appt.id, result);
+      await loadAppointments();
+      toast.success("Payment successful — appointment confirmed");
+    } catch (err) {
+      const msg = (err as Error).message || "";
+      toast.error(
+        /cancel/i.test(msg) ? "Payment cancelled" : `Payment failed — ${msg || "please try again"}`
+      );
+    } finally {
+      setPayingApptId(null);
     }
   }
 
@@ -646,14 +688,22 @@ export default function PatientDashboard() {
                     will be charged via Razorpay.
                   </p>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-3">
                     <Button onClick={payNow} disabled={paying}>
                       {paying ? "Processing…" : `Pay ₹${pending.invoice.total.toFixed(2)}`}
                     </Button>
-                    <Button variant="secondary" onClick={cancelInvoice} disabled={paying}>
+                    <Button variant="secondary" onClick={payLater} disabled={paying}>
+                      Pay Later
+                    </Button>
+                    <Button variant="ghost" onClick={cancelInvoice} disabled={paying}>
                       Cancel
                     </Button>
                   </div>
+                  <p className="text-[11px] text-on-surface-variant">
+                    Choosing <strong>Pay Later</strong> books this slot now — pay
+                    anytime from your Appointment History. The appointment is
+                    confirmed only after payment.
+                  </p>
                 </div>
               )}
             </div>
@@ -700,7 +750,21 @@ export default function PatientDashboard() {
                             {new Date(a.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </span>
                         </td>
-                        <td className="py-4"><StatusBadge status={a.status} /></td>
+                        <td className="py-4">
+                          <div className="flex flex-col items-start gap-1.5">
+                            <StatusBadge status={a.status} />
+                            {a.status === "PENDING" && (
+                              <button
+                                onClick={() => payPendingAppointment(a)}
+                                disabled={payingApptId === a.id}
+                                className="flex items-center gap-1 bg-primary-container text-on-primary px-2.5 py-1 rounded-lg font-bold text-[11px] hover:shadow-md transition-all disabled:opacity-50"
+                              >
+                                <span className="material-symbols-outlined text-sm">payments</span>
+                                {payingApptId === a.id ? "Opening…" : "Pay now"}
+                              </button>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-4 text-right pr-4 rounded-r-xl">
                           <div className="flex items-center justify-end gap-2">
                             {a.mode === "ONLINE" &&

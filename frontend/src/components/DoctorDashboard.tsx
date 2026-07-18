@@ -407,7 +407,12 @@ export default function DoctorDashboard() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-5"><StatusBadge status={a.status} /></td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col items-start gap-1.5">
+                              <StatusBadge status={a.status} />
+                              <PaymentSign appt={a} />
+                            </div>
+                          </td>
                           <td className="px-6 py-5">
                             <RowActions appt={a} busy={actingId === a.id} onSet={setStatus} onJoin={handleJoin} joining={joiningId === a.id} />
                           </td>
@@ -463,6 +468,7 @@ export default function DoctorDashboard() {
                           {a.mode === "ONLINE" ? "Telehealth" : "In-person"}
                         </span>
                         <StatusBadge status={a.status} />
+                        <PaymentSign appt={a} />
                         <RowActions appt={a} busy={actingId === a.id} onSet={setStatus} onJoin={handleJoin} joining={joiningId === a.id} />
                       </div>
                     </div>
@@ -686,6 +692,23 @@ function AvailabilityManager({
         ))}
       </div>
     </section>
+  );
+}
+
+// Small amber sign flagging that a booked appointment hasn't been paid yet.
+// PENDING = booked but unpaid (payment is confirmed via CONFIRMED); a VERIFIED
+// payment or any non-pending status means it's settled.
+function PaymentSign({ appt }: { appt: Appointment }) {
+  const unpaid = appt.status === "PENDING" && appt.payment?.status !== "VERIFIED";
+  if (!unpaid) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-1 rounded-full"
+      title="Payment not completed for this appointment"
+    >
+      <span className="material-symbols-outlined text-[13px]">money_off</span>
+      Unpaid
+    </span>
   );
 }
 

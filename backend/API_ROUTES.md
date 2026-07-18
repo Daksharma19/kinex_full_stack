@@ -150,6 +150,14 @@ payment's `gatewayOrderId`). Backstop for when the browser callback never fires.
 - **Auth:** none (signature-verified). Register this URL in the Razorpay Dashboard.
 - **Returns:** `200` (acknowledged) · `400` invalid signature
 
+### `POST /api/v1/appointment/:id/payment/resume`
+Resume payment for a **"pay later"** booking — the appointment was created and the
+slot reserved, but payment was deferred (status still `PENDING`). Returns a Razorpay
+order (reusing the stored one) to complete payment; verify then confirms it.
+- **Auth:** Bearer Supabase token — owning `PATIENT` only
+- **Returns:** `200` — `{ payment: { orderId, amount, currency, keyId }, doctorName }`
+  · `409` if the appointment is no longer awaiting payment · `503` if Razorpay unconfigured
+
 ### `POST /api/v1/appointment/:id/payment/verify`
 Verify the Razorpay payment for an appointment. A valid signature marks the payment
 `VERIFIED` and auto-**confirms** the appointment (slot stays locked). An invalid

@@ -7,6 +7,7 @@ const appointmentRouter = Router();
 appointmentRouter.use(requireAuth, requireProfile);
 
 appointmentRouter.post("/", requireRole("PATIENT"), appointmentController.createAppointment)
+appointmentRouter.post("/:id/payment/resume", requireRole("PATIENT"), appointmentController.resumePayment)
 appointmentRouter.post("/:id/payment/verify", requireRole("PATIENT"), appointmentController.verifyAppointmentPayment)
 appointmentRouter.delete("/:id/release", requireRole("PATIENT"), appointmentController.releaseAppointment)
 // Join the video room for a confirmed online appointment (participant-only).

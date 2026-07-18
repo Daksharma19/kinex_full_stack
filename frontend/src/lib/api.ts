@@ -394,6 +394,17 @@ export function releaseAppointment(appointmentId: string) {
   });
 }
 
+/**
+ * PATIENT-only: resume payment for a "pay later" (still PENDING) appointment.
+ * Returns a Razorpay order to complete payment with.
+ */
+export function resumePayment(appointmentId: string) {
+  return apiFetch<{ payment: PaymentOrder; doctorName: string }>(
+    `/appointment/${appointmentId}/payment/resume`,
+    { method: "POST" }
+  );
+}
+
 /** PATIENT-only: verify a Razorpay payment to auto-confirm the appointment. */
 export function verifyAppointmentPayment(
   appointmentId: string,

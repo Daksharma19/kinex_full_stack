@@ -123,6 +123,64 @@ export async function createAppointment(req: Request, res: Response) {
 }
 
 /**
+ * Resume payment for a "pay later" booking — PATIENT-only, owner-only. Returns a
+ * fresh Razorpay order (reusing the stored one when present) so the patient can
+ * complete payment for an already-booked but still-PENDING appointment. The slot
+ * stayed reserved when they chose to pay later, so nothing is re-reserved here.
+ */
+export async function resumePayment(req: Request, res: Response) {
+  try {
+    const caller = req.profile!;
+
+    if (!isRazorpayConfigured)
+      return res
+        .status(503)
+        .json({ message: "Online payment is not configured. Please try again later." });
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: req.params.id as string },
+      include: {
+        patient: { include: { profile: { select: { id: true } } } },
+        doctor: { include: { profile: { select: { name: true } } } },
+        payment: true,
+      },
+    });
+    if (!appointment || !appointment.payment)
+      return res.status(404).json({ message: "Appointment not found" });
+    if (appointment.patient.profile.id !== caller.id)
+      return res.status(403).json({ message: "Not allowed to pay for this appointment" });
+    if (appointment.status !== "PENDING")
+      return res.status(409).json({ message: "This appointment is not awaiting payment" });
+
+    const amountPaise = Number(appointment.payment.amountPaise);
+
+    // Reuse the existing order; create one only if it's somehow missing.
+    let orderId = appointment.payment.gatewayOrderId;
+    if (!orderId) {
+      const order = await createRazorpayOrder(amountPaise, appointment.id);
+      orderId = order.id;
+      await prisma.payment.update({
+        where: { id: appointment.payment.id },
+        data: { gatewayOrderId: orderId },
+      });
+    }
+
+    return res.status(200).json({
+      payment: {
+        orderId,
+        amount: amountPaise,
+        currency: "INR",
+        keyId: razorpayKeyId,
+      },
+      doctorName: appointment.doctor.profile.name,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/**
  * Verify a Razorpay payment and auto-confirm the appointment — PATIENT-only,
  * and only the patient who owns the appointment. On a valid signature the
  * payment is marked VERIFIED and the appointment becomes CONFIRMED (the slot
