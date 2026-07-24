@@ -64,6 +64,12 @@ app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
 
+// Liveness probe. Cheap, no DB hit — an external cron pings this every few
+// minutes to keep the Render free-tier instance from spinning down.
+app.get('/healthz', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port http://localhost:${PORT}`);
 });
